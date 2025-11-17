@@ -1,0 +1,331 @@
+/* =============================
+   LAYOUT GENERAL
+============================= */
+
+body {
+  margin: 0;
+  display: flex;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+  background: #e5e7eb;
+}
+
+/* =============================
+   PANEL IZQUIERDO
+============================= */
+
+#leftPanel {
+  width: 220px;
+  background: #1f2937;
+  color: white;
+  padding: 15px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  position: relative;
+}
+
+#leftPanel h2 {
+  font-size: 14px;
+  margin-top: 0;
+}
+
+.btn {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #374151;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+  border-radius: 5px;
+  transition: background 0.2s ease;
+}
+
+.btn:hover {
+  background: #4b5563;
+}
+
+/* =============================
+   PANEL DERECHO
+============================= */
+
+#rightPanel {
+  width: 300px;
+  background: #ffffff;
+  border-left: 2px solid #ccc;
+  padding: 15px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  position: relative;
+}
+
+#rightPanel h3 {
+  margin-top: 0;
+}
+
+/* =============================
+   RESIZERS
+============================= */
+
+.panel-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  z-index: 10;
+}
+
+#leftPanel .panel-resizer {
+  right: 0;
+}
+
+#rightPanel .panel-resizer {
+  left: 0;
+}
+
+.panel-resizer:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* =============================
+   ZONA CENTRAL
+============================= */
+
+#mainArea {
+  flex: 1;
+  background: #f3f4f6;
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-title {
+  font-size: 22px;
+  color: #1f2937;
+  margin: 0 0 12px 0;
+}
+
+/* =============================
+   ÁREA DE TRABAJO CENTRAL
+============================= */
+
+#workContainer {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  overflow: hidden;
+  height: 100%;
+}
+
+/* Editor visual izquierdo */
+#visualEditor {
+  flex: 1;
+  border: 1px solid #ccc;
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Editor markdown derecho */
+#markdownText {
+  flex: 1;
+  border: 1px solid #ccc;
+  background: #ffffff;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: Consolas, monospace;
+  resize: none;
+  overflow-y: auto;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.05);
+}
+
+/* =============================
+   TOOLBAR SUPERIOR
+============================= */
+
+.toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.toolbar button {
+  padding: 6px 10px;
+  font-size: 14px;
+  background: #f9fafb;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.toolbar button:hover {
+  background: #e5e7eb;
+  transform: translateY(-1px);
+}
+
+.toolbar .separator {
+  width: 1px;
+  background: #cbd5e1;
+  margin: 0 8px;
+}
+
+/* =============================
+   BOTONES DE FORMATO IZQUIERDA
+============================= */
+
+.md-btn {
+  font-size: 13px;
+  text-align: left;
+}
+
+/* =============================
+   TABLAS MARKDOWN (render visual)
+============================= */
+
+.markdown-table {
+  border-collapse: collapse;
+  border: 1px solid #666;
+  margin: 10px 0;
+  width: auto;
+  background: #fff;
+}
+
+.markdown-table th {
+  background: #f3f4f6;
+  border: 1px solid #999;
+  padding: 4px 8px;
+  font-weight: bold;
+  text-align: left;
+}
+
+.markdown-table td {
+  border: 1px solid #999;
+  padding: 4px 8px;
+  min-width: 80px;
+}
+
+.markdown-table td:focus {
+  outline: 2px solid #2563eb;
+}
+
+/* =============================
+   PREVIEW (si lo usas)
+============================= */
+
+#preview {
+  font-family: Arial, sans-serif;
+  line-height: 1.5;
+  padding: 10px;
+  white-space: normal;
+}
+
+#preview pre {
+  background: #efefef;
+  padding: 10px;
+  border-radius: 6px;
+  overflow: auto;
+}
+
+/* =============================
+   INSERCIÓN DE CAMPOS (botón)
+============================= */
+
+.field-inserter {
+  margin-top: 8px;
+  padding: 6px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  display: flex;
+  justify-content: center;
+}
+
+#btnInsertField {
+  background: #22c55e;
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+#btnInsertField:hover {
+  background: #16a34a;
+}
+
+/* =============================
+   CAMPOS PERSONALIZADOS (CAJITA)
+============================= */
+
+.gc-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  margin: 2px 4px;
+  min-width: 120px;
+  border: 1px solid #16a34a;       /* verde visible */
+  border-radius: 6px;
+  background: #f0fdf4;             /* verde muy claro */
+  color: #14532d;
+  line-height: 1.4;
+  vertical-align: middle;
+  user-select: text;
+}
+
+.gc-field:hover {
+  border-color: #15803d;
+}
+
+.gc-field:focus-within {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* texto editable dentro de la cajita */
+.gc-field-name[contenteditable="true"] {
+  min-width: 100px;
+  outline: none;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+}
+
+/* placeholder cuando está vacío */
+.gc-field-name[data-placeholder="true"] {
+  color: #64748b;
+  font-style: italic;
+}
+pre.md-table-block {
+  font-family: Consolas, monospace;
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 6px;
+  border-radius: 4px;
+  white-space: pre;
+  overflow-x: auto;
+  line-height: 1.4;
+  margin: 6px 0;
+}
