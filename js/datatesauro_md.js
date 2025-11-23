@@ -48,22 +48,7 @@ const DataTesauro = {
                 this.togglePanel();
             });
         }
-            // === NUEVO BOTÓN VERDE → abre TesauroManager ===
-            if (!document.getElementById("btnTesauroManagerFloat")) {
-                const btn2 = document.createElement("button");
-                btn2.id = "btnTesauroManagerFloat";
-                btn2.className = "floating-tesauro-btn-green";
-                btn2.textContent = "🧩 Manager";
-                document.body.appendChild(btn2);
 
-                btn2.addEventListener("click", () => {
-                    if (window.TesauroManager && typeof TesauroManager.open === "function") {
-                        TesauroManager.open();
-                    } else {
-                        alert("TesauroManager no está disponible.");
-                    }
-                });
-            }
         // Crear panel lateral si no existe
         if (!document.getElementById("tesauroPanel")) {
             this.panel = document.createElement("div");
@@ -502,6 +487,9 @@ generarReferenciaDesdeNombre(nombre) {
 
     return camel;
 }
+
+
+
 
 
 };

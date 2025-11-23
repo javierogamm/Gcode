@@ -170,40 +170,26 @@ body {
 
 /* === TESAURO: estilos panel lateral y botón flotante === */
 
-/* === BOTÓN TESAURO: ARRIBA DERECHA === */
 .floating-tesauro-btn {
-    position: fixed;
-    top: 15px !important;
-    right: 160px !important;
-    z-index: 99999;
-    background: #fbbf24;
-    color: white;
-    padding: 10px 14px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 50;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: none;
+  background: #f59e0b;
+  color: #111827;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  font-size: 13px;
 }
+
 .floating-tesauro-btn:hover {
   background: #fbbf24;
 }
 
-/* === BOTÓN VERDE: MANAGER DE TESAUROS === */
-.floating-tesauro-btn-green {
-    position: fixed;
-    top: 15px !important;
-    right: 50px !important;   /* A la derecha del azul */
-    z-index: 99999;
-    background: #059669;       /* Verde tailwind */
-    color: white;
-    padding: 10px 14px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-}
 .tesauro-panel {
   position: fixed;
   top: 0;
