@@ -8,6 +8,89 @@ const btnNuevo = document.getElementById("btnNuevo");
 const btnPegarAuto = document.getElementById("btnPegarAuto");
 const btnCopiar = document.getElementById("btnCopiar");
 const btnDescargar = document.getElementById("btnDescargar");
+const btnExportProyecto = document.getElementById("btnExportProyecto");
+if (btnExportProyecto) {
+    btnExportProyecto.addEventListener("click", () => {
+        const textarea = document.getElementById("markdownText");
+        const markdown = textarea ? textarea.value : "";
+
+        // Coger lista completa de tesauros desde DataTesauro
+        const tesauros = (window.DataTesauro && Array.isArray(DataTesauro.campos))
+            ? DataTesauro.campos
+            : [];
+
+        const proyecto = {
+            markdown: markdown,
+            tesauros: tesauros
+        };
+
+        const jsonStr = JSON.stringify(proyecto, null, 2);
+        const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "proyecto_markdown_tesauros.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+}
+const btnImportProyecto = document.getElementById("btnImportProyecto");
+if (btnImportProyecto) {
+    btnImportProyecto.addEventListener("click", () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "application/json,.json";
+
+        input.addEventListener("change", (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const raw = reader.result || "";
+                    const data = JSON.parse(raw);
+
+                    // 1) Restaurar markdown
+                    if (data && typeof data.markdown === "string") {
+                        const ta = document.getElementById("markdownText");
+                        if (ta) {
+                            ta.value = data.markdown;
+
+                            // Si tienes resaltado/preview, lo actualizamos
+                            if (typeof window.updateHighlight === "function") {
+                                updateHighlight();
+                            }
+                        }
+                    }
+
+                    // 2) Restaurar tesauros completos
+                    if (data && Array.isArray(data.tesauros) && window.DataTesauro) {
+                        DataTesauro.campos = data.tesauros;
+
+                        if (typeof DataTesauro.renderList === "function") {
+                            DataTesauro.renderList();
+                        } else if (typeof DataTesauro.render === "function") {
+                            DataTesauro.render();
+                        }
+                    }
+
+                    alert("✔ Proyecto importado correctamente.");
+                } catch (err) {
+                    console.error(err);
+                    alert("No se ha podido leer el JSON del proyecto.");
+                }
+            };
+
+            reader.readAsText(file, "utf-8");
+        });
+
+        input.click();
+    });
+}
 
 /* =======================================
    SISTEMA DE UNDO / REDO

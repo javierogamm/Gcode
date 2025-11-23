@@ -173,7 +173,7 @@ body {
 .floating-tesauro-btn {
   position: fixed;
   right: 20px;
-  bottom: 20px;
+  top: 15px;
   z-index: 50;
   padding: 10px 14px;
   border-radius: 999px;
@@ -184,10 +184,40 @@ body {
   cursor: pointer;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   font-size: 13px;
+
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .floating-tesauro-btn:hover {
-  background: #fbbf24;
+  background: #fbbf24; /* más claro (igual que ya tenías) */
+  transform: scale(1.05);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.35);
+}
+/* === Nuevo botón verde versión pastilla === */
+#btnTesauroManagerFloating {
+  position: fixed;
+  right: 175px;
+  top: 15px;
+  z-index: 99999;
+
+  padding: 10px 14px;          /* mismo tamaño que el botón de tesauro */
+  border-radius: 999px;        /* forma pastilla */
+  border: none;
+  background: #22c55e;         /* verde */
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3); /* igual al tesauro */
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Hover igual al gestor verde */
+#btnTesauroManagerFloating:hover {
+  background: #4ade80; /* verde más vivo */
+  transform: scale(1.05);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.35);
 }
 
 .tesauro-panel {

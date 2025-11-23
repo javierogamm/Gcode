@@ -267,8 +267,17 @@ const LetManager = {
                             Clic para insertar un <strong>alias</strong> en la fórmula
                             (luego se convertirá a <code>personalized.REF</code>).
                         </p>
-                        <div id="letTesauroList" style="
+                        <input id="letTesauroSearch" type="text" placeholder="Buscar por nombre o referencia..." style="
+                                width:100%;
+                                margin:0 0 6px 0;
+                                padding:4px 6px;
+                                border-radius:6px;
+                                border:1px solid #cbd5e1;
+                                font-size:12px;
+                            ">
+                            <div id="letTesauroList" style="
                             max-height:160px;
+                            min-height:160px;
                             overflow:auto;
                             border-radius:6px;
                             border:1px solid #e5e7eb;
@@ -330,11 +339,23 @@ const LetManager = {
         this.formulaInput = div.querySelector("#letFormulaInput");
         this.tesauroList  = div.querySelector("#letTesauroList");
         this.defList      = div.querySelector("#letDefinitionList");
+        this.tesauroSearch = div.querySelector("#letTesauroSearch");  // *** NUEVO ***
 
+        if (this.tesauroSearch) {
+            const onSearchChange = () => this.renderTesauroList();
+            this.tesauroSearch.addEventListener("input", onSearchChange);
+            this.tesauroSearch.addEventListener("keyup", onSearchChange); // por si acaso
+        }
         // referencias al builder
         this.opBar      = div.querySelector("#letOpBar");
         this.boolBar    = div.querySelector("#letBoolBar");
 
+            // *** NUEVO: filtrar lista de tesauros al escribir ***
+            if (this.tesauroSearch) {
+                this.tesauroSearch.addEventListener("input", () => {
+                    this.renderTesauroList();
+                });
+            }
         const btnOk     = div.querySelector("#letOkBtn");
         const btnCancel = div.querySelector("#letCancelBtn");
 
@@ -528,67 +549,93 @@ const LetManager = {
     },
 
     renderTesauroList() {
-        if (!this.tesauroList) return;
+    if (!this.tesauroList) return;
 
-        this.tesauroList.innerHTML = "";
+    this.tesauroList.innerHTML = "";
 
-        if (!this.tesauroFields.length) {
-            const p = document.createElement("div");
-            p.style.fontSize = "12px";
-            p.style.color = "#6b7280";
-            p.style.padding = "4px 6px";
-            p.textContent = "No hay tesauros numéricos / moneda / si_no definidos.";
-            this.tesauroList.appendChild(p);
-            return;
-        }
+    // 🔍 leer el término de búsqueda directamente del input
+    const searchInput = this.modal
+        ? this.modal.querySelector("#letTesauroSearch")
+        : null;
 
-        this.tesauroFields.forEach((field) => {
-            const ref    = field.ref || "";
-            const nombre = field.nombre || ref || "(sin nombre)";
-            const tipo   = field.tipo || "";
-            const token  = field.token || ref || "";
+    const term = searchInput
+        ? (searchInput.value || "").trim().toLowerCase()
+        : "";
 
-            const item = document.createElement("div");
-            item.style.padding = "4px 6px";
-            item.style.borderRadius = "4px";
-            item.style.cursor = "pointer";
-            item.style.display = "flex";
-            item.style.flexDirection = "column";
-            item.style.gap = "2px";
-            item.style.marginBottom = "2px";
+    // Lista base: solo tesauros numero / moneda / si_no (ya filtrados en buildTesauroFields)
+    let lista = this.tesauroFields || [];
 
-            item.addEventListener("mouseenter", () => {
-                item.style.background = "#e5effe";
-            });
-            item.addEventListener("mouseleave", () => {
-                item.style.background = "transparent";
-            });
-
-            // Clic → insertar alias en fórmula (solo destino numérico)
-            item.addEventListener("click", () => {
-                if (!ref) return;
-                if (!this.isNumericDest()) return;
-                if (!token) return;
-                this.insertTokenInFormula(token);
-            });
-
-            const line1 = document.createElement("div");
-            line1.textContent = nombre;
-            line1.style.fontWeight = "500";
-            line1.style.color = "#111827";
-            line1.style.fontSize = "12px";
-
-            const line2 = document.createElement("div");
-            line2.textContent = `${token}  →  ${ref} [${tipo}]`;
-            line2.style.fontSize = "11px";
-            line2.style.color = "#6b7280";
-
-            item.appendChild(line1);
-            item.appendChild(line2);
-
-            this.tesauroList.appendChild(item);
+    // Aplicar filtro por nombre o referencia
+    if (term) {
+        lista = lista.filter((field) => {
+            const nombre = (field.nombre || "").toLowerCase();
+            const ref    = (field.ref || "").toLowerCase();
+            return nombre.includes(term) || ref.includes(term);
         });
-    },
+    }
+
+    if (!lista.length) {
+        const p = document.createElement("div");
+        p.style.fontSize = "12px";
+        p.style.color = "#6b7280";
+        p.style.padding = "4px 6px";
+        p.textContent = term
+            ? "No hay tesauros que coincidan con la búsqueda."
+            : "No hay tesauros numéricos / moneda / si_no definidos.";
+        this.tesauroList.appendChild(p);
+        return;
+    }
+
+    // ⚠️ A partir de aquí es lo que ya tenías, solo que usando `lista` en vez de `this.tesauroFields`
+    lista.forEach((field) => {
+        const ref    = field.ref || "";
+        const nombre = field.nombre || ref || "(sin nombre)";
+        const tipo   = field.tipo || "";
+        const token  = field.token || ref || "";
+
+        const item = document.createElement("div");
+        item.style.padding = "4px 6px";
+        item.style.borderRadius = "4px";
+        item.style.cursor = "pointer";
+        item.style.display = "flex";
+        item.style.flexDirection = "column";
+        item.style.gap = "2px";
+        item.style.marginBottom = "2px";
+
+        item.addEventListener("mouseenter", () => {
+            item.style.background = "#e5effe";
+        });
+        item.addEventListener("mouseleave", () => {
+            item.style.background = "transparent";
+        });
+
+        // Clic → insertar alias en fórmula (solo destino numérico, igual que antes)
+        item.addEventListener("click", () => {
+            if (!ref) return;
+            if (!this.isNumericDest()) return;
+            if (!token) return;
+            this.insertTokenInFormula(token);
+        });
+
+        const line1 = document.createElement("div");
+        line1.textContent = nombre;
+        line1.style.fontWeight = "500";
+        line1.style.color = "#111827";
+        line1.style.fontSize = "12px";
+
+        const line2 = document.createElement("div");
+        line2.textContent = `${token}  →  ${ref} [${tipo}]`;
+        line2.style.fontSize = "11px";
+        line2.style.color = "#6b7280";
+
+        item.appendChild(line1);
+        item.appendChild(line2);
+
+        this.tesauroList.appendChild(item);
+    });
+}
+
+,
 
     /* =======================================
        Variables (definition, numeric)

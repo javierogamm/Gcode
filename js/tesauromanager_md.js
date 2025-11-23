@@ -8,6 +8,7 @@
    - Sincroniza siempre con DataTesauro.campos
    (adaptado para Editor Markdown: sin Engine, sin DataTesauro.sync)
    - *** NUEVO ***: Exportador Tesauro (3 CSV) con modal Entidad/Actividad
+   - *** NUEVO ***: Importar tesauros desde Markdown
 ============================================================ */
 
 const TesauroManager = {
@@ -17,12 +18,14 @@ const TesauroManager = {
     btnClose: null,
     btnSave: null,
     btnOpenRefPopup: null,
-    btnOpenPlainImport: null,   // *** NUEVO: botón importar texto
+    btnOpenPlainImport: null,   // botón importar texto
+    btnOpenMdImport: null,      // *** NUEVO: botón importar desde markdown
     refModal: null,
 
-    importModal: null,          // *** NUEVO: popup importar texto
+    importModal: null,          // popup importar texto
+    markdownImportModal: null,  // *** NUEVO: popup importar markdown
 
-    // *** NUEVO: modal exportar Tesauro (3 CSV)
+    // modal exportar Tesauro (3 CSV)
     exportModal: null,
     exportEntidad: "",
     exportActividad: "",
@@ -55,6 +58,8 @@ const TesauroManager = {
         // === Caja interna ===
         div.innerHTML = `
     <div id="tmBox" style="
+
+    
         background:white;
         width:90%;
         height:85%;
@@ -65,6 +70,21 @@ const TesauroManager = {
         box-shadow:0 6px 20px rgba(0,0,0,0.35);
         overflow:hidden;
     ">
+    <button id="tmCloseX" style=" 
+    position:absolute;
+    top:50px;
+    right:64px;
+    background:#fee2e2;
+    border:1px solid #f41313ff;
+    color:#991b1b;
+    width:32px;
+    height:32px;
+    border-radius:999px;
+    cursor:pointer;
+    font-size:16px;
+    font-weight:bold;
+    box-shadow:0 2px 6px rgba(0,0,0,0.25);
+">✖</button>
         <h2 style="
             margin:0 0 15px 0;
             text-align:center;
@@ -90,10 +110,15 @@ const TesauroManager = {
             </table>
         </div>
 
-
-        <!-- *** NUEVO: botón para exportador oficial 3 CSV (Tesauro) -->
-        <div style="margin-top:8px; display:flex; justify-content:flex-end;">
+        <!-- *** NUEVO: zona de acciones de import/export (4 botones en una línea) -->
+        <div style="
+            margin-top:8px;
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+        ">
             <button id="tmExportTesauroAll" style="
+                flex:1;
                 border:none;
                 border-radius:6px;
                 padding:8px 12px;
@@ -102,40 +127,49 @@ const TesauroManager = {
                 cursor:pointer;
                 font-size:12px;
                 font-weight:bold;
-                width:100%;
             ">
                 📦 Exportar Tesauro (3 CSV oficiales)
             </button>
+
+            <button id="tmOpenPlainImport" style="
+                flex:1;
+                background:#dbeafe;
+                border:1px solid #3b82f6;
+                border-radius:6px;
+                padding:10px;
+                cursor:pointer;
+                font-weight:bold;
+            ">
+                📥 Importar tesauros (texto)
+            </button>
+
+            <!-- *** NUEVO: Importar tesauros desde Markdown -->
+            <button id="tmOpenMdImport" style="
+                flex:1;
+                background:#ecfdf5;
+                border:1px solid #22c55e;
+                border-radius:6px;
+                padding:10px;
+                cursor:pointer;
+                font-weight:bold;
+            ">
+                📝 Importar desde Markdown
+            </button>
+
+            <button id="tmOpenRefPopup" style="
+                flex:1;
+                background:#fef3c7;
+                border:1px solid #f59e0b;
+                border-radius:6px;
+                padding:10px;
+                cursor:pointer;
+                font-weight:bold;
+            ">
+                🧪 Referenciar Tesauros
+            </button>
         </div>
 
-        <!-- *** NUEVO: botón para importar tesauros desde texto plano -->
-        <button id="tmOpenPlainImport" style="
-            width:100%;
-            margin:10px 0 6px 0;
-            background:#dbeafe;
-            border:1px solid #3b82f6;
-            border-radius:6px;
-            padding:10px;
-            cursor:pointer;
-            font-weight:bold;
-        ">
-            📥 Importar tesauros (texto)
-        </button>
-
-        <button id="tmOpenRefPopup" style="
-            width:100%;
-            margin:4px 0 10px 0;
-            background:#fef3c7;
-            border:1px solid #f59e0b;
-            border-radius:6px;
-            padding:10px;
-            cursor:pointer;
-            font-weight:bold;
-        ">
-            🧪 Referenciar Tesauros
-        </button>
-
-     <div style="display:flex; gap:10px; margin-top:12px;">
+        <div style="display:flex; gap:10px; margin-top:12px;">
             <button id="tmClose" style="
                 flex:1;
                 background:#f1f5f9;
@@ -221,7 +255,7 @@ const TesauroManager = {
         </div>
 `;
 
-        // *** NUEVO: MODAL EXPORTAR TESAURO (3 CSV) — pide Entidad y Actividad
+        // MODAL EXPORTAR TESAURO (3 CSV) — pide Entidad y Actividad
         div.innerHTML += `
         <div id="tmExportModal" style="
             position:fixed;
@@ -289,11 +323,16 @@ const TesauroManager = {
         this.btnClose = div.querySelector("#tmClose");
         this.btnSave = div.querySelector("#tmSave");
         this.btnOpenRefPopup = div.querySelector("#tmOpenRefPopup");
-        this.btnOpenPlainImport = div.querySelector("#tmOpenPlainImport"); // *** NUEVO
+        this.btnOpenPlainImport = div.querySelector("#tmOpenPlainImport");
+        this.btnOpenMdImport = div.querySelector("#tmOpenMdImport");  // *** NUEVO
         this.exportModal = div.querySelector("#tmExportModal");
 
         // Eventos básicos
         this.btnClose.addEventListener("click", () => this.close());
+        const btnCloseX = div.querySelector("#tmCloseX");
+        if (btnCloseX) {
+            btnCloseX.addEventListener("click", () => this.close());
+            }
         this.btnSave.addEventListener("click", () => this.save());
         this.btnOpenRefPopup.addEventListener("click", () => this.openRefPopup());
 
@@ -302,18 +341,23 @@ const TesauroManager = {
             btnNewTesauro.addEventListener("click", () => this.createTesauroFromManager());
         }
 
-        // *** NUEVO: abrir popup de importación desde texto
+        // Abrir popup de importación desde texto
         if (this.btnOpenPlainImport) {
             this.btnOpenPlainImport.addEventListener("click", () => this.openPlainImportPopup());
         }
 
-        // *** NUEVO: abrir modal export Tesauro 3 CSV
+        // *** NUEVO: abrir popup de importación desde Markdown
+        if (this.btnOpenMdImport) {
+            this.btnOpenMdImport.addEventListener("click", () => this.openMarkdownImportPopup());
+        }
+
+        // Abrir modal export Tesauro 3 CSV
         const btnExportTesauroAll = div.querySelector("#tmExportTesauroAll");
         if (btnExportTesauroAll) {
             btnExportTesauroAll.addEventListener("click", () => this.openExportTesauroModal());
         }
 
-        // *** NUEVO: wiring botones del modal de exportación
+        // wiring botones del modal de exportación
         if (this.exportModal) {
             const btnExpCancel = this.exportModal.querySelector("#tmExpCancel");
             const btnExpDo = this.exportModal.querySelector("#tmExpDo");
@@ -342,11 +386,6 @@ const TesauroManager = {
                 });
             }
         }
-
-
-
-
-
     },
 
     /* ---------------------------------------------
@@ -366,11 +405,8 @@ const TesauroManager = {
     },
 
     /* ============================================================
-       *** NUEVO ***
        POPUP IMPORTAR TESAUROS DESDE TEXTO PLANO
-       Formato por línea:
-       Momento   Agrupación   Referencia   Nombre   Tipo   Clasificación   Borrar
-       (clasificación y borrar se ignoran; tipo desconocido → "texto")
+       (ya existente)
     ============================================================ */
     openPlainImportPopup() {
         // si ya existe, solo mostrar
@@ -468,6 +504,315 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
 
                 alert("✔ Importados " + nuevos.length + " tesauros desde texto.");
                 this.importModal.style.display = "none";
+            });
+        }
+    },
+
+    /* ============================================================
+       *** NUEVO ***
+       POPUP IMPORTAR TESAUROS DESDE MARKDOWN
+       - Detecta {{personalized | reference: RefTesauro}}
+       - Muestra lista editable antes de guardar
+    ============================================================ */
+    openMarkdownImportPopup() {
+        // si ya existe, solo mostrar
+        if (this.markdownImportModal) {
+            this.markdownImportModal.style.display = "flex";
+            return;
+        }
+
+        const div = document.createElement("div");
+        div.style.position = "fixed";
+        div.style.inset = "0";
+        div.style.background = "rgba(0,0,0,0.45)";
+        div.style.zIndex = "999999";
+        div.style.display = "flex";
+        div.style.alignItems = "center";
+        div.style.justifyContent = "center";
+
+        div.innerHTML = `
+            <div style="
+                background:white;
+                width:760px;
+                max-width:95%;
+                padding:20px;
+                border-radius:12px;
+                box-shadow:0 4px 20px rgba(0,0,0,0.35);
+                display:flex;
+                flex-direction:column;
+                max-height:80vh;
+            ">
+                <h2 style="margin:0 0 10px 0; text-align:center;">📝 Importar tesauros desde Markdown</h2>
+                <p style="margin:0 0 8px 0; font-size:13px; color:#4b5563;">
+                    Se detectarán referencias con la forma
+                    <code>{{personalized | reference: MiReferencia}}</code>
+                    en el Markdown pegado abajo. Cada referencia generará (o actualizará)
+                    un tesauro con esa referencia.
+                </p>
+
+                <textarea id="tmMdInput" style="
+                    width:100%;
+                    min-height:120px;
+                    resize:vertical;
+                    padding:8px;
+                    margin:8px 0 10px 0;
+                    border:1px solid #cbd5e1;
+                    border-radius:6px;
+                    font-family:Consolas,monospace;
+                    font-size:12px;
+                " placeholder="Pega aquí el Markdown que contiene tesauros..."></textarea>
+
+                <!-- Contenedor con scroll para la lista editable -->
+                <div style="
+                    flex:1;
+                    min-height:120px;
+                    max-height:40vh;
+                    overflow:auto;
+                    border:1px solid #e5e7eb;
+                    border-radius:6px;
+                    padding:4px;
+                    margin-bottom:10px;
+                ">
+                    <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                        <thead>
+                            <tr style="background:#e5e7eb;">
+                                <th style="padding:4px; border:1px solid #d1d5db;">Referencia</th>
+                                <th style="padding:4px; border:1px solid #d1d5db;">Nombre</th>
+                                <th style="padding:4px; border:1px solid #d1d5db;">Tipo</th>
+                                <th style="padding:4px; border:1px solid #d1d5db;">Momento</th>
+                                <th style="padding:4px; border:1px solid #d1d5db;">Agrupación</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tmMdTable"></tbody>
+                    </table>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:4px;">
+                    <button id="tmMdCancel" style="
+                        flex:1; background:#f1f5f9; border:1px solid #cbd5e1;
+                        padding:8px; border-radius:6px; cursor:pointer;
+                    ">Cancelar</button>
+
+                    <button id="tmMdDetect" style="
+                        flex:1; background:#fef3c7; border:1px solid #f59e0b;
+                        padding:8px; border-radius:6px; cursor:pointer; font-weight:bold;
+                    ">🔍 Detectar tesauros</button>
+
+                    <button id="tmMdImport" style="
+                        flex:1; background:#10b981; color:white;
+                        border:none; padding:8px; border-radius:6px;
+                        cursor:pointer; font-weight:bold;
+                    ">💾 Importar y guardar</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(div);
+        this.markdownImportModal = div;
+
+        const txtArea = div.querySelector("#tmMdInput");
+        const tbody = div.querySelector("#tmMdTable");
+        const btnCancel = div.querySelector("#tmMdCancel");
+        const btnDetect = div.querySelector("#tmMdDetect");
+        const btnImport = div.querySelector("#tmMdImport");
+
+        if (btnCancel) {
+            btnCancel.addEventListener("click", () => {
+                this.markdownImportModal.style.display = "none";
+            });
+        }
+
+        if (btnDetect) {
+            btnDetect.addEventListener("click", () => {
+                const raw = (txtArea.value || "");
+                const refsSet = new Set();
+
+                // Buscar {{personalized | reference: RefTesauro}}
+                const regex = /\{\{\s*personalized\s*\|\s*reference\s*:\s*([A-Za-z0-9_]+)\s*\}\}/gi;
+                let m;
+                while ((m = regex.exec(raw)) !== null) {
+                    const ref = (m[1] || "").trim();
+                    if (ref) refsSet.add(ref);
+                }
+
+                tbody.innerHTML = "";
+
+                const refs = Array.from(refsSet);
+                if (!refs.length) {
+                    alert("No se han encontrado tesauros en el Markdown.");
+                    return;
+                }
+
+                const existentes = (window.DataTesauro && Array.isArray(DataTesauro.campos))
+                    ? DataTesauro.campos
+                    : [];
+
+                refs.forEach(ref => {
+                    const existing = existentes.find(c =>
+                        (c.ref || "").toLowerCase() === ref.toLowerCase()
+                    ) || {};
+
+                    const tr = document.createElement("tr");
+                    tr.style.borderBottom = "1px solid #e5e7eb";
+
+                    // Referencia
+                    const tdRef = document.createElement("td");
+                    tdRef.style.padding = "4px";
+                    tdRef.style.border = "1px solid #d1d5db";
+                    const inpRef = document.createElement("input");
+                    inpRef.type = "text";
+                    inpRef.className = "tmMd-ref";
+                    inpRef.value = ref;
+                    inpRef.style.width = "100%";
+                    inpRef.style.padding = "3px";
+                    inpRef.style.border = "1px solid #cbd5e1";
+                    inpRef.style.borderRadius = "4px";
+                    tdRef.appendChild(inpRef);
+
+                    // Nombre
+                    const tdNombre = document.createElement("td");
+                    tdNombre.style.padding = "4px";
+                    tdNombre.style.border = "1px solid #d1d5db";
+                    const inpNombre = document.createElement("input");
+                    inpNombre.type = "text";
+                    inpNombre.className = "tmMd-nombre";
+                    inpNombre.value = existing.nombre || ref;
+                    inpNombre.style.width = "100%";
+                    inpNombre.style.padding = "3px";
+                    inpNombre.style.border = "1px solid #cbd5e1";
+                    inpNombre.style.borderRadius = "4px";
+                    tdNombre.appendChild(inpNombre);
+
+                    // Tipo
+                    const tdTipo = document.createElement("td");
+                    tdTipo.style.padding = "4px";
+                    tdTipo.style.border = "1px solid #d1d5db";
+                    const selTipo = document.createElement("select");
+                    selTipo.className = "tmMd-tipo";
+                    selTipo.style.width = "100%";
+                    selTipo.style.padding = "3px";
+                    selTipo.style.borderRadius = "4px";
+                    selTipo.style.border = "1px solid #cbd5e1";
+
+                    const tipos = [
+                        ["selector", "Selector"],
+                        ["si_no", "Sí/No"],
+                        ["texto", "Texto"],
+                        ["numero", "Numérico"],
+                        ["moneda", "Moneda"],
+                        ["fecha", "Fecha"]
+                    ];
+                    const tipoActual = existing.tipo || "texto";
+                    tipos.forEach(([val, label]) => {
+                        const opt = document.createElement("option");
+                        opt.value = val;
+                        opt.textContent = label;
+                        if (val === tipoActual) opt.selected = true;
+                        selTipo.appendChild(opt);
+                    });
+                    tdTipo.appendChild(selTipo);
+
+                    // Momento
+                    const tdMomento = document.createElement("td");
+                    tdMomento.style.padding = "4px";
+                    tdMomento.style.border = "1px solid #d1d5db";
+                    const selMom = document.createElement("select");
+                    selMom.className = "tmMd-momento";
+                    selMom.style.width = "100%";
+                    selMom.style.padding = "3px";
+                    selMom.style.borderRadius = "4px";
+                    selMom.style.border = "1px solid #cbd5e1";
+
+                    const momentos = ["Solicitud", "Tramitación", "Ejecución", "Archivo"];
+                    const momentoActual = existing.momento || "Solicitud";
+                    momentos.forEach(mom => {
+                        const opt = document.createElement("option");
+                        opt.value = mom;
+                        opt.textContent = mom;
+                        if (mom === momentoActual) opt.selected = true;
+                        selMom.appendChild(opt);
+                    });
+                    tdMomento.appendChild(selMom);
+
+                    // Agrupación
+                    const tdAgr = document.createElement("td");
+                    tdAgr.style.padding = "4px";
+                    tdAgr.style.border = "1px solid #d1d5db";
+                    const inpAgr = document.createElement("input");
+                    inpAgr.type = "text";
+                    inpAgr.className = "tmMd-agr";
+                    inpAgr.value = existing.agrupacion || "Agrupación";
+                    inpAgr.style.width = "100%";
+                    inpAgr.style.padding = "3px";
+                    inpAgr.style.border = "1px solid #cbd5e1";
+                    inpAgr.style.borderRadius = "4px";
+                    tdAgr.appendChild(inpAgr);
+
+                    tr.appendChild(tdRef);
+                    tr.appendChild(tdNombre);
+                    tr.appendChild(tdTipo);
+                    tr.appendChild(tdMomento);
+                    tr.appendChild(tdAgr);
+
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+
+        if (btnImport) {
+            btnImport.addEventListener("click", () => {
+                const rows = Array.from(tbody.querySelectorAll("tr"));
+                if (!rows.length) {
+                    alert("No hay nada que importar. Primero detecta los tesauros.");
+                    return;
+                }
+
+                const actuales = (window.DataTesauro && Array.isArray(DataTesauro.campos))
+                    ? DataTesauro.campos
+                    : [];
+                const nuevos = [];
+
+                rows.forEach(row => {
+                    const ref = (row.querySelector(".tmMd-ref")?.value || "").trim();
+                    const nombre = (row.querySelector(".tmMd-nombre")?.value || "").trim() || ref;
+                    const tipo = (row.querySelector(".tmMd-tipo")?.value || "texto");
+                    const momento = (row.querySelector(".tmMd-momento")?.value || "Solicitud");
+                    const agrupacion = (row.querySelector(".tmMd-agr")?.value || "Agrupación");
+
+                    if (!ref || !nombre) return;
+
+                    const existing = actuales.find(c =>
+                        (c.ref || "").toLowerCase() === ref.toLowerCase()
+                    );
+
+                    const nuevo = {
+                        ref,
+                        nombre,
+                        tipo,
+                        momento,
+                        agrupacion
+                    };
+
+                    // Si ya existía y era selector, intenta preservar sus opciones
+                    if (existing && Array.isArray(existing.opciones)) {
+                        nuevo.opciones = existing.opciones.slice();
+                    } else if (tipo === "selector") {
+                        nuevo.opciones = [];
+                    }
+
+                    nuevos.push(nuevo);
+                });
+
+                if (!nuevos.length) {
+                    alert("No se ha generado ningún tesauro a partir de la tabla.");
+                    return;
+                }
+
+                this.mergeImportedCampos(nuevos);
+                this.render();
+
+                alert("✔ Importados/actualizados " + nuevos.length + " tesauros desde Markdown.");
+                this.markdownImportModal.style.display = "none";
             });
         }
     },
@@ -633,8 +978,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
     },
 
     /* ---------------------------------------------
-       Crear realmente los tesauros tipo "texto"
-       a partir de la tabla de previsualización
+       Crear tesauros desde la tabla de referencias
     --------------------------------------------- */
     refCreateFn() {
         if (!this.refModal) return;
@@ -686,7 +1030,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
         if (creados > 0) {
             DataTesauro.campos = lista;
 
-            // 🔁 Adaptado al editor Markdown: refrescar panel lateral
+            // refrescar panel lateral
             if (typeof DataTesauro.renderList === "function") {
                 DataTesauro.renderList();
             } else if (typeof DataTesauro.render === "function") {
@@ -710,7 +1054,14 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
         this.table.innerHTML = "";
 
         const lista = DataTesauro.campos || [];
-
+   // *** NUEVO: asegurar que TODOS los campos tengan id (para selección y cambios masivos)
+    lista.forEach(c => {
+        if (!c.id) {
+            c.id = (typeof DataTesauro.generateId === "function")
+                ? DataTesauro.generateId()
+                : TesauroManager.generateId();
+        }
+    });
         // Asegurar valores por defecto
         lista.forEach(c => {
             if (!c.momento) c.momento = "Solicitud";
@@ -724,7 +1075,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
             }
         });
 
-        // *** asegurar IDs únicos para las opciones de los selectores
+        // asegurar IDs únicos para opciones de selectors
         lista.forEach(c => {
             if (c.tipo === "selector" && Array.isArray(c.opciones)) {
                 c.opciones.forEach(o => {
@@ -782,7 +1133,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
             </select>
         `;
 
-            // === COLUMNA: Valores (si es selector) ===
+            // === COLUMNA: Valores (selector) ===
             const tdValores = document.createElement("td");
             tdValores.style.padding = "6px";
             tdValores.style.border = "1px solid #cbd5e1";
@@ -882,13 +1233,33 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
             row.appendChild(tdValores);
             row.appendChild(tdMomento);
             row.appendChild(tdAgr);
+            // === COLUMNA: Borrar tesauro ===
+            const tdDel = document.createElement("td");
+            tdDel.style.padding = "6px";
+            tdDel.style.border = "1px solid #cbd5e1";
+            tdDel.style.textAlign = "center";
+
+            tdDel.innerHTML = `
+                <button class="tmDelTesauro" data-id="${c.id}" 
+                    style="
+                        background:#fee2e2;
+                        border:1px solid #fca5a5;
+                        color:#991b1b;
+                        padding:4px 8px;
+                        border-radius:4px;
+                        cursor:pointer;
+                        font-weight:bold;
+                    ">
+                    ❌
+                </button>
+            `;
+
+row.appendChild(tdDel);
 
             this.table.appendChild(row);
         });
 
-        // ============================================================
-        // ⭐ CAMBIO INDIVIDUAL DE TIPO (con soporte masivo si hay varios)
-        // ============================================================
+        // CAMBIO INDIVIDUAL DE TIPO (con soporte masivo)
         this.modal.querySelectorAll(".tmTipoSelect").forEach(sel => {
             sel.addEventListener("change", (e) => {
                 const nuevoTipo = e.target.value;
@@ -928,9 +1299,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
             });
         });
 
-        // ============================================================
-        // ⭐ CAMBIOS INDIVIDUALES EN MOMENTO
-        // ============================================================
+        // CAMBIOS INDIVIDUALES EN MOMENTO
         this.modal.querySelectorAll(".tmMomentoSelect").forEach(sel => {
             sel.addEventListener("change", () => {
                 const id = sel.dataset.id;
@@ -939,9 +1308,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
             });
         });
 
-        // ============================================================
-        // ⭐ CAMBIOS INDIVIDUALES EN AGRUPACIÓN
-        // ============================================================
+        // CAMBIOS INDIVIDUALES EN AGRUPACIÓN
         this.modal.querySelectorAll(".tmAgrInput").forEach(inp => {
             inp.addEventListener("input", () => {
                 const id = inp.dataset.id;
@@ -950,9 +1317,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
             });
         });
 
-        // ============================================================
         // 🎯 Selección múltiple (con panel deslizante)
-        // ============================================================
         const rowsEls = Array.from(this.modal.querySelectorAll(".tm-row"));
 
         rowsEls.forEach(row => {
@@ -1010,9 +1375,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
             });
         });
 
-        /* ============================================================
-           ⭐ ACCIONES MASIVAS (Tipo, Momento, Agrupación)
-        ============================================================ */
+        // ACCIONES MASIVAS (Tipo, Momento, Agrupación)
         const massApply = this.modal.querySelector("#tmMassApply");
         const massSelect = this.modal.querySelector("#tmMassTipo");
         const massMomento = this.modal.querySelector("#tmMassMomento");
@@ -1034,7 +1397,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
                     const item = DataTesauro.campos.find(x => x.id === id);
                     if (!item) return;
 
-                    // --- CAMBIAR TIPO ---
+                    // CAMBIAR TIPO
                     if (tipo) {
                         item.tipo = tipo;
                         if (tipo === "selector") {
@@ -1044,12 +1407,12 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
                         }
                     }
 
-                    // --- CAMBIAR MOMENTO ---
+                    // CAMBIAR MOMENTO
                     if (momento) {
                         item.momento = momento;
                     }
 
-                    // --- CAMBIAR AGRUPACIÓN ---
+                    // CAMBIAR AGRUPACIÓN
                     if (agrupacion) {
                         item.agrupacion = agrupacion;
                     }
@@ -1072,9 +1435,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
             };
         }
 
-        // ============================================================
-        // *** NUEVO: gestión de opciones de campos tipo "selector"
-        // ============================================================
+        // gestión de opciones de campos tipo "selector"
 
         // Añadir opción al selector
         this.modal.querySelectorAll(".tm-opt-add").forEach(btn => {
@@ -1171,6 +1532,25 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
                 opt.valor = inp.value;
             });
         });
+        // BORRAR TESAURO COMPLETO
+            this.modal.querySelectorAll(".tmDelTesauro").forEach(btn => {
+                btn.addEventListener("click", e => {
+                    e.stopPropagation();
+                    const id = btn.dataset.id;
+                    if (!id) return;
+
+                    const ok = confirm("¿Seguro que quieres borrar este tesauro?");
+                    if (!ok) return;
+
+                    DataTesauro.campos = DataTesauro.campos.filter(c => c.id !== id);
+
+                    // refrescar
+                    this.render();
+                    if (typeof DataTesauro.renderList === "function") DataTesauro.renderList();
+                });
+            });
+
+
     }, // fin render
 
     /* ---------------------------------------------
@@ -1212,7 +1592,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
             }
         });
 
-        // 3) Momento y agrupación ya se actualizan con los listeners
+        // Momento y agrupación ya se actualizan con los listeners
 
         // 4) Refrescar panel lateral del tesauro en el editor Markdown
         if (typeof DataTesauro.renderList === "function") {
@@ -1352,7 +1732,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
         return campos;
     },
 
-    // *** NUEVO ***
+    // mapear tipo desde texto
     mapTipoFromTexto(txt) {
         if (!txt) return "texto";
         let t = String(txt).trim().toLowerCase();
@@ -1423,11 +1803,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
     },
 
     /* ---------------------------------------------
-       *** NUEVO ***
        EXPORTADOR OFICIAL TESAURO (3 CSV)
-       - Tesauro.csv
-       - Tesauro_Valores.csv
-       - Vinculacion_Tesauros.csv
     --------------------------------------------- */
     openExportTesauroModal() {
         if (!this.exportModal) return;
@@ -1450,9 +1826,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
 
         const lista = DataTesauro.campos || [];
 
-        // ======================================================
-        // 1️⃣ Tesauro.csv (igual lógica que DataTesauro.exportTesauroCSV)
-        // ======================================================
+        // 1️⃣ Tesauro.csv
         const header1 = [
             "Nombre Entidad","Sobrescribir","Eliminar","Clasificación","Referencia",
             "Nombre Castellano","Nombre Catalán","Nombre Valenciano","Nombre Gallego","Nombre Euskera","Nombre Balear",
@@ -1507,9 +1881,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
         const csv1 = [header1.join(";"), ...rows1.map(r => r.map(v => this.cleanCsvValue(v)).join(";"))].join("\n");
         this.downloadCsvWithBom("Tesauro.csv", csv1);
 
-        // ======================================================
-        // 2️⃣ Tesauro_Valores.csv (solo selectores con opciones)
-        // ======================================================
+        // 2️⃣ Tesauro_Valores.csv
         const selectores = lista.filter(c => c.tipo === "selector" && Array.isArray(c.opciones) && c.opciones.length);
         if (selectores.length) {
             const header2 = ["Referencia Tesauro", "Referencia I18N", "Idioma", "Valor"];
@@ -1530,9 +1902,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
             this.downloadCsvWithBom("Tesauro_Valores.csv", csv2);
         }
 
-        // ======================================================
         // 3️⃣ Vinculacion_Tesauros.csv
-        // ======================================================
         const headerV = [
             "Nombre Entidad",
             "Sobrescribir",

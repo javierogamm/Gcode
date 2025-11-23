@@ -40,12 +40,28 @@ const DataTesauro = {
             this.btn = document.createElement("button");
             this.btn.id = "btnTesauro";
             this.btn.className = "floating-tesauro-btn";
-            this.btn.textContent = "📚 Tesauro";
+            this.btn.textContent = "📚 Insertar Tesauro";
             // === TESAURO: botón flotante ===
             document.body.appendChild(this.btn);
 
             this.btn.addEventListener("click", () => {
                 this.togglePanel();
+            });
+        }
+        // === NUEVO BOTÓN FLOTANTE: acceso directo al gestor completo ===
+        if (!document.getElementById("btnTesauroManagerFloating")) {
+            const btn2 = document.createElement("button");
+            btn2.id = "btnTesauroManagerFloating";
+            btn2.className = "floating-tesauro-manager-btn";
+            btn2.textContent = "🧩Gestor de Tesauros";
+            document.body.appendChild(btn2);
+
+            btn2.addEventListener("click", () => {
+                if (window.TesauroManager && typeof TesauroManager.open === "function") {
+                    TesauroManager.open();
+                } else {
+                    alert("TesauroManager no está disponible.");
+                }
             });
         }
 
@@ -57,7 +73,6 @@ const DataTesauro = {
             this.panel.innerHTML = `
                 <h3>📚 Campos del Tesauro</h3>
                 <div class="tesauro-panel-inner">
-                    <div class="tesauro-panel-section" id="tesauroFormSection"></div>
                     <div class="tesauro-panel-section">
                         <h4>📋 Campos definidos</h4>
                         <div id="tesauroList"></div>
@@ -71,7 +86,6 @@ const DataTesauro = {
             document.body.appendChild(this.panel);
 
             this.listDiv = this.panel.querySelector("#tesauroList");
-            this.renderForm();
             this.renderList();
         } else {
             this.panel = document.getElementById("tesauroPanel");
@@ -95,124 +109,7 @@ const DataTesauro = {
         }
     },
 
-    /* =======================================
-       FORMULARIO RÁPIDO (ALTA / EDICIÓN)
-       ======================================= */
-    renderForm() {
-        const formSection = this.panel.querySelector("#tesauroFormSection");
-        if (!formSection) return;
-
-        formSection.innerHTML = `
-            <h4>➕ Crear / editar campo</h4>
-
-            <div class="tesauro-form-row">
-                <label for="tNombre">Nombre del campo</label>
-                <input id="tNombre" type="text" placeholder="Ej: Referencia Catastral" />
-            </div>
-
-            <div class="tesauro-form-row">
-                <label for="tRef">Referencia (se autogenera)</label>
-                <input id="tRef" type="text" placeholder="referenciaCatastral" />
-            </div>
-
-            <div class="tesauro-form-row">
-                <label for="tTipo">Tipo</label>
-                <select id="tTipo">
-                    <option value="texto">Texto</option>
-                    <option value="selector">Selector</option>
-                    <option value="si_no">Sí / No</option>
-                    <option value="numero">Número</option>
-                    <option value="fecha">Fecha</option>
-                    <option value="moneda">Moneda</option>
-                </select>
-            </div>
-
-            <div class="tesauro-form-actions">
-                <button id="btnTesauroGuardar" class="tesauro-btn tesauro-btn-primary">💾 Guardar</button>
-                <button id="btnTesauroLimpiar" class="tesauro-btn tesauro-btn-secondary">🧹 Limpiar</button>
-            </div>
-
-            <div style="margin-top:8px; display:flex; gap:6px;">
-                <button id="btnTesauroManager" class="tesauro-btn tesauro-btn-secondary" style="flex:1;">
-                    🧩 Gestor completo
-                </button>
-            </div>
-        `;
-
-        const inputNombre = formSection.querySelector("#tNombre");
-        const inputRef = formSection.querySelector("#tRef");
-        const selectTipo = formSection.querySelector("#tTipo");
-        const btnGuardar = formSection.querySelector("#btnTesauroGuardar");
-        const btnLimpiar = formSection.querySelector("#btnTesauroLimpiar");
-        const btnManager = formSection.querySelector("#btnTesauroManager");
-
-        // Autogenerar referencia al escribir nombre
-        inputNombre.addEventListener("input", () => {
-            if (!inputNombre.value.trim()) return;
-            inputRef.value = this.generarReferenciaDesdeNombre(inputNombre.value);
-        });
-
-        // Guardar campo (nuevo o edición)
-        btnGuardar.addEventListener("click", () => {
-            const nombre = inputNombre.value.trim();
-            const ref = inputRef.value.trim();
-            const tipo = selectTipo.value;
-
-            if (!nombre || !ref) {
-                alert("Nombre y referencia son obligatorios.");
-                return;
-            }
-
-            const editingId = formSection.dataset.editingId || null;
-
-            if (editingId) {
-                // Editar
-                const idx = this.campos.findIndex(c => c.id === editingId);
-                if (idx !== -1) {
-                    this.campos[idx].nombre = nombre;
-                    this.campos[idx].ref = ref;
-                    this.campos[idx].tipo = tipo;
-                }
-            } else {
-                // Alta nueva
-                this.campos.push({
-                    id: this.generateId(),
-                    nombre,
-                    ref,
-                    tipo,
-                    momento: "",
-                    agrupacion: ""
-                });
-            }
-
-            this.renderList();
-            this.clearForm();
-        });
-
-        // Limpiar formulario
-        btnLimpiar.addEventListener("click", () => {
-            this.clearForm();
-        });
-
-        // Abrir gestor completo
-        btnManager.addEventListener("click", () => {
-            if (window.TesauroManager && typeof TesauroManager.open === "function") {
-                TesauroManager.open();
-            } else {
-                alert("TesauroManager no está disponible (js/tesauromanager_md.js).");
-            }
-        });
-    },
-
-    clearForm() {
-        const formSection = this.panel.querySelector("#tesauroFormSection");
-        if (!formSection) return;
-        formSection.dataset.editingId = "";
-        formSection.querySelector("#tNombre").value = "";
-        formSection.querySelector("#tRef").value = "";
-        formSection.querySelector("#tTipo").value = "texto";
-    },
-
+    
     /* =======================================
        LISTADO AGRUPADO POR TIPO
        ======================================= */
@@ -294,12 +191,7 @@ const DataTesauro = {
                 const formSection = this.panel.querySelector("#tesauroFormSection");
                 if (!formSection) return;
 
-                formSection.dataset.editingId = campo.id;
-                formSection.querySelector("#tNombre").value = campo.nombre;
-                formSection.querySelector("#tRef").value = campo.ref;
-                formSection.querySelector("#tTipo").value = campo.tipo || "texto";
-                this.panel.classList.add("visible");
-            });
+                           });
         });
 
         this.listDiv.querySelectorAll(".tesauro-del").forEach(btn => {
@@ -328,6 +220,27 @@ const DataTesauro = {
        DRAG & DROP HACIA EL TEXTAREA
        ======================================= */
     setupMarkdownDrop(textarea) {
+
+// --- Mantener visualmente la selección durante el drag/drop ---
+let savedSelStart = 0;
+let savedSelEnd = 0;
+
+// Guardar la selección cuando comienza el drag desde un tesauro
+document.addEventListener("dragstart", () => {
+    savedSelStart = textarea.selectionStart;
+    savedSelEnd = textarea.selectionEnd;
+});
+
+// Restaurar visual al entrar en el área del textarea
+textarea.addEventListener("dragenter", () => {
+    textarea.setSelectionRange(savedSelStart, savedSelEnd);
+});
+
+// Restaurar visual mientras el usuario mueve el tesauro por encima
+textarea.addEventListener("dragover", () => {
+    textarea.setSelectionRange(savedSelStart, savedSelEnd);
+});
+
         // Dragover: permitir soltar si viene un tesauro
         textarea.addEventListener("dragover", (e) => {
             const types = Array.from(e.dataTransfer.types || []);
