@@ -1,157 +1,136 @@
 /* =============================
    LAYOUT GENERAL
-============================= */
+   ============================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f3f4f6;
+  color: #111827;
   display: flex;
   height: 100vh;
-  font-family: Arial, sans-serif;
-  overflow: hidden;
-  background: #e5e7eb;
 }
 
-/* =============================
-   PANEL IZQUIERDO
-============================= */
-
+/* Panel izquierdo */
 #leftPanel {
-  width: 220px;
-  background: #1f2937;
-  color: white;
-  padding: 15px;
-  box-sizing: border-box;
-  overflow-y: auto;
-  position: relative;
+  width: 230px;
+  background: #111827;
+  color: #e5e7eb;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-right: 1px solid #1f2937;
 }
 
 #leftPanel h2 {
-  font-size: 14px;
-  margin-top: 0;
+  margin: 0 0 8px 0;
+  font-size: 18px;
 }
 
-.btn {
-  width: 100%;
-  margin-bottom: 10px;
-  padding: 10px;
-  background: #374151;
+#leftPanel .btn {
+  padding: 8px 10px;
+  border-radius: 6px;
   border: none;
-  color: white;
+  background: #1f2937;
+  color: #e5e7eb;
   cursor: pointer;
-  font-size: 12px;
-  border-radius: 5px;
-  transition: background 0.2s ease;
+  text-align: left;
+  font-size: 14px;
+  transition: background 0.15s ease, transform 0.05s ease;
 }
 
-.btn:hover {
-  background: #4b5563;
+#leftPanel .btn:hover {
+  background: #374151;
+  transform: translateY(-1px);
 }
 
-/* =============================
-   PANEL DERECHO
-============================= */
-
-#rightPanel {
-  width: 300px;
-  background: #ffffff;
-  border-left: 2px solid #ccc;
-  padding: 15px;
-  box-sizing: border-box;
-  overflow-y: auto;
-  position: relative;
+#leftPanel hr {
+  border: none;
+  border-top: 1px solid #374151;
+  margin: 10px 0;
 }
 
-#rightPanel h3 {
-  margin-top: 0;
-}
-
-/* =============================
-   RESIZERS
-============================= */
-
-.panel-resizer {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 6px;
-  cursor: ew-resize;
-  z-index: 10;
-}
-
-#leftPanel .panel-resizer {
-  right: 0;
-}
-
-#rightPanel .panel-resizer {
-  left: 0;
-}
-
-.panel-resizer:hover {
-  background: rgba(0, 0, 0, 0.1);
-}
-
-/* =============================
-   ZONA CENTRAL
-============================= */
-
+/* Zona central */
 #mainArea {
   flex: 1;
-  background: #f3f4f6;
-  position: relative;
-  overflow: hidden;
-  padding: 20px;
   display: flex;
   flex-direction: column;
+  padding: 16px;
+  gap: 12px;
+  overflow: hidden;
 }
 
 .main-title {
-  font-size: 22px;
-  color: #1f2937;
-  margin: 0 0 12px 0;
+  margin: 0;
+  font-size: 20px;
+  color: #111827;
 }
 
-/* =============================
-   ÁREA DE TRABAJO CENTRAL
-============================= */
-
+/* Contenedor de trabajo */
 #workContainer {
+  flex: 1;
   display: flex;
-  gap: 12px;
-  flex: 1;
+  flex-direction: column;
+  gap: 8px;
   overflow: hidden;
-  height: 100%;
+  position: relative; /* para el overlay */
 }
 
-/* Editor visual izquierdo */
-#visualEditor {
-  flex: 1;
-  border: 1px solid #ccc;
-  background: white;
-  padding: 12px;
-  border-radius: 8px;
-  overflow-y: auto;
-  font-size: 14px;
-  line-height: 1.5;
-  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.05);
-}
-
-/* Editor markdown derecho */
+/* Editor markdown único */
+/* TEXTAREA */
 #markdownText {
-  flex: 1;
-  border: 1px solid #ccc;
-  background: #ffffff;
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: Consolas, monospace;
-  resize: none;
-  overflow-y: auto;
-  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.05);
+    flex: 1;
+    border: 1px solid #ccc;
+    background: transparent;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: Consolas, monospace;
+    resize: none;
+    overflow: auto;
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    line-height: 1.4;
+    position: relative;
+    color: #111;
+    caret-color: #111;
+    z-index: 2;
 }
 
-/* =============================
+/* OVERLAY */
+#mdHighlighter {
+    position: absolute;
+    inset: 0;
+    padding: 12px;
+    font-family: Consolas, monospace;
+    font-size: 14px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.4;
+    color: transparent;
+    background: transparent !important;
+    pointer-events: none;
+    overflow: hidden;     /* NO scroll propio */
+    z-index: 1;
+}
+
+/* TESAURO BLOCK */
+.tesauro-block {
+    background: rgba(34, 197, 94, 0.25);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    border-radius: 4px;
+    padding: 1px 3px;
+    color: transparent;
+}/* =============================
    TOOLBAR SUPERIOR
-============================= */
+   ============================= */
 
 .toolbar {
   display: flex;
@@ -189,143 +168,487 @@ body {
   margin: 0 8px;
 }
 
-/* =============================
-   BOTONES DE FORMATO IZQUIERDA
-============================= */
+/* === TESAURO: estilos panel lateral y botón flotante === */
 
-.md-btn {
-  font-size: 13px;
-  text-align: left;
+/* === BOTÓN TESAURO: ARRIBA DERECHA === */
+.floating-tesauro-btn {
+    position: fixed;
+    top: 15px !important;
+    right: 160px !important;
+    z-index: 99999;
+    background: #fbbf24;
+    color: white;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+.floating-tesauro-btn:hover {
+  background: #fbbf24;
 }
 
-/* =============================
-   TABLAS MARKDOWN (render visual)
-============================= */
-
-.markdown-table {
-  border-collapse: collapse;
-  border: 1px solid #666;
-  margin: 10px 0;
-  width: auto;
-  background: #fff;
+/* === BOTÓN VERDE: MANAGER DE TESAUROS === */
+.floating-tesauro-btn-green {
+    position: fixed;
+    top: 15px !important;
+    right: 50px !important;   /* A la derecha del azul */
+    z-index: 99999;
+    background: #059669;       /* Verde tailwind */
+    color: white;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
 }
-
-.markdown-table th {
-  background: #f3f4f6;
-  border: 1px solid #999;
-  padding: 4px 8px;
-  font-weight: bold;
-  text-align: left;
-}
-
-.markdown-table td {
-  border: 1px solid #999;
-  padding: 4px 8px;
-  min-width: 80px;
-}
-
-.markdown-table td:focus {
-  outline: 2px solid #2563eb;
-}
-
-/* =============================
-   PREVIEW (si lo usas)
-============================= */
-
-#preview {
-  font-family: Arial, sans-serif;
-  line-height: 1.5;
-  padding: 10px;
-  white-space: normal;
-}
-
-#preview pre {
-  background: #efefef;
-  padding: 10px;
-  border-radius: 6px;
-  overflow: auto;
-}
-
-/* =============================
-   INSERCIÓN DE CAMPOS (botón)
-============================= */
-
-.field-inserter {
-  margin-top: 8px;
-  padding: 6px;
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+.tesauro-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 340px;
+  height: 100vh;
+  background: #020617;
+  color: #e5e7eb;
+  box-shadow: -4px 0 10px rgba(0,0,0,0.35);
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  z-index: 40;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
 }
 
-#btnInsertField {
-  background: #22c55e;
+.tesauro-panel.visible {
+  transform: translateX(0);
+}
+
+.tesauro-panel h3 {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 16px;
+  background: #020617;
+  border-bottom: 1px solid #1f2937;
+}
+
+.tesauro-panel-inner {
+  padding: 10px 12px;
+  overflow-y: auto;
+  flex: 1;
+  font-size: 13px;
+}
+
+.tesauro-panel-section {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #1f2937;
+}
+
+.tesauro-panel-section h4 {
+  margin: 0 0 6px 0;
+  font-size: 13px;
+  color: #f9fafb;
+}
+
+.tesauro-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.tesauro-form-row label {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.tesauro-form-row input,
+.tesauro-form-row select {
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid #4b5563;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 12px;
+}
+
+.tesauro-form-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.tesauro-btn {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 12px;
+  border-radius: 4px;
   border: none;
-  color: white;
-  padding: 8px 12px;
-  font-size: 14px;
-  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.2s ease;
 }
 
-#btnInsertField:hover {
-  background: #16a34a;
+.tesauro-btn-primary {
+  background: #10b981;
+  color: #ecfdf5;
 }
 
-/* =============================
-   CAMPOS PERSONALIZADOS (CAJITA)
-============================= */
+.tesauro-btn-secondary {
+  background: #374151;
+  color: #e5e7eb;
+}
 
-.gc-field {
-  display: inline-flex;
+.tesauro-btn-primary:hover {
+  background: #059669;
+}
+
+.tesauro-btn-secondary:hover {
+  background: #4b5563;
+}
+
+.tesauro-panel-footer {
+  padding: 8px 12px;
+  border-top: 1px solid #1f2937;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* Grupos y elementos */
+
+.tesauro-group {
+  margin-bottom: 8px;
+}
+
+.tesauro-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  padding: 4px 6px;
+  cursor: pointer;
+  background: #020617;
+  border: 1px solid #1f2937;
+  border-radius: 4px;
+}
+
+.tesauro-group-header span:last-child {
+  opacity: 0.7;
+}
+
+.tesauro-group-body {
+  margin-top: 4px;
+}
+
+.tesauro-item {
+  border-radius: 4px;
+  border: 1px solid #1f2937;
+  padding: 4px 6px;
+  margin-bottom: 4px;
+  background: #020617;
+}
+
+.drag-pill {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px dashed #60a5fa;
+  font-size: 11px;
+  margin-bottom: 4px;
+  cursor: grab;
+  background: #0f172a;
+  color: #e5e7eb;
+}
+
+.tesauro-item-main {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px;
-  margin: 2px 4px;
-  min-width: 120px;
-  border: 1px solid #16a34a;       /* verde visible */
-  border-radius: 6px;
-  background: #f0fdf4;             /* verde muy claro */
-  color: #14532d;
-  line-height: 1.4;
-  vertical-align: middle;
-  user-select: text;
 }
 
-.gc-field:hover {
-  border-color: #15803d;
+.tesauro-item-name {
+  font-size: 11px;
+  color: #e5e7eb;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.gc-field:focus-within {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
-}
-
-/* texto editable dentro de la cajita */
-.gc-field-name[contenteditable="true"] {
-  min-width: 100px;
-  outline: none;
+.tesauro-mini-btn {
   border: none;
-  background: transparent;
-  font-size: 13px;
+  background: #111827;
+  color: #e5e7eb;
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 11px;
+  cursor: pointer;
 }
 
-/* placeholder cuando está vacío */
-.gc-field-name[data-placeholder="true"] {
-  color: #64748b;
-  font-style: italic;
+.tesauro-mini-btn:hover {
+  background: #1f2937;
 }
-pre.md-table-block {
-  font-family: Consolas, monospace;
-  background: #fff;
-  border: 1px solid #ccc;
-  padding: 6px;
+
+/* Modal TesauroManager (estructura base; el resto va inline) */
+#tesauroManagerModal {
+  font-family: inherit;
+}
+
+/* === TESAURO PANEL BLANCO (override) === */
+
+.tesauro-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 360px;
+  height: 100vh;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  border-left: 1px solid #e5e7eb;
+  box-shadow: -4px 0 12px rgba(0,0,0,0.1);
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+}
+
+.tesauro-panel.visible {
+  transform: translateX(0);
+}
+
+.tesauro-panel h3 {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 16px;
+  background: #f9fafb !important;
+  border-bottom: 1px solid #e5e7eb;
+  color: #111827;
+}
+
+.tesauro-panel-inner {
+  padding: 12px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.tesauro-panel-section {
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tesauro-panel-section h4 {
+  color: #111827;
+}
+
+.tesauro-form-row label {
+  color: #4b5563;
+}
+
+.tesauro-form-row input,
+.tesauro-form-row select {
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
+  border-radius: 6px;
+}
+
+.tesauro-btn-primary {
+  background: #2563eb !important;
+  color: white;
+}
+
+.tesauro-btn-secondary {
+  background: #f3f4f6 !important;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+}
+
+.tesauro-panel-footer {
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  color: #6b7280;
+}
+
+.tesauro-group-header {
+  background: #f3f4f6 !important;
+  border: 1px solid #e5e7eb !important;
+  color: #111827;
+}
+
+.tesauro-group-body .tesauro-item {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.drag-pill {
+  border: 1px dashed #60a5fa !important;
+  background: #eff6ff !important;
+  color: #1e3a8a !important;
+}
+
+.tesauro-item-name {
+  color: #1f2937 !important;
+}
+
+.tesauro-mini-btn {
+  background: #f3f4f6 !important;
+  border: 1px solid #e5e7eb;
+  color: #374151 !important;
+}
+
+/* === TESAURO MANAGER BLANCO === */
+
+#tesauroManagerModal > div {
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  width: 95% !important;
+  max-width: 1400px !important;
+  max-height: 95vh !important;
+  border-radius: 12px !important;
+}
+
+/* Header */
+#tesauroManagerModal h2 {
+  color: #111827 !important;
+}
+
+#tesauroManagerModal > div > div:first-child {
+  background: #f9fafb !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+#tmCloseBtn {
+  background: #e5e7eb !important;
+  color: #111827 !important;
+  border: 1px solid #d1d5db;
+}
+
+/* Tabla */
+#tesauroManagerModal table thead tr {
+  background: #f3f4f6 !important;
+}
+
+#tesauroManagerModal table th {
+  color: #374151 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+#tesauroManagerModal table td {
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+#tesauroManagerModal table input,
+#tesauroManagerModal table select {
+  background: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  color: #111827 !important;
+  border-radius: 6px !important;
+  padding: 6px 8px !important;
+}
+
+/* Panel derecho */
+#tmPasteArea {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+#tmApplyPaste {
+  background: #2563eb !important;
+  color: white !important;
+}
+
+#tmExportJson {
+  background: #16a34a !important;
+  color: white !important;
+}
+
+#tmExportCsv {
+  background: #0ea5e9 !important;
+  color: white !important;
+}
+
+/* Footer */
+#tesauroManagerModal > div > div:last-child {
+  background: #f9fafb !important;
+  border-top: 1px solid #e5e7eb !important;
+}
+/* Bloque de sección (highlight amarillo) */
+.section-block {
+  background: rgba(250, 204, 21, 0.266); /* amarillo translúcido */
+  border: 1px solid rgba(217, 119, 6, 0.6);
   border-radius: 4px;
-  white-space: pre;
-  overflow-x: auto;
-  line-height: 1.4;
-  margin: 6px 0;
+  padding: 1px 2px;
+}
+/* Bloque de sección (highlight amarillo base) */
+.section-block {
+  border-radius: 4px;
+  padding: 1px 2px;
+  background: rgba(237, 237, 9, 0.21);
+  border: 1px solid rgba(217, 119, 6, 0.50);
+}
+
+/* Profundidad 1 (más claro) */
+.section-block.section-depth-1 {
+  background: rgba(237, 207, 9, 0.21);
+  border-color: rgba(217, 119, 6, 0.30);
+}
+
+/* Profundidad 2 */
+.section-block.section-depth-2 {
+  background: rgba(250, 116, 21, 0.21);
+  border-color: rgba(217, 119, 6, 0.40);
+}
+
+/* Profundidad 3 */
+.section-block.section-depth-3 {
+  background: rgba(197, 127, 14, 0.21);
+  border-color: rgba(180, 83, 9, 0.55);
+}
+
+/* Profundidad 4 */
+.section-block.section-depth-4 {
+  background: rgba(250, 170, 21, 0.21);
+  border-color: rgba(146, 64, 14, 0.70);
+}
+
+/* Profundidad 5 (más oscuro) */
+.section-block.section-depth-5 {
+  background: rgba(222, 188, 18, 0.21);
+  border-color: rgba(120, 53, 15, 0.80);
+}
+.section-error-block {
+  background: rgba(230, 7, 7, 0.575); /* rojito suave */
+  border: 1px solid rgba(220, 38, 38, 0.85);
+  border-radius: 4px;
+  padding: 1px 2px;
+}
+
+.let-block {
+  background: rgba(37, 99, 235, 0.30);    /* azul tipo cobalt */
+  border: 1px solid rgba(37, 99, 235, 0.65);
+  border-radius: 4px;
+  padding: 1px 3px;
+  color: transparent; /* seguimos usando el truco de texto transparente */
+}
+.definition-block {
+    background: rgba(120, 160, 255, 0.22);   /* azul muy pálido */
+    border-radius: 3px;
+    padding: 1px 2px;
+}
+
+/* Fila seleccionada en el Gestor de Tesauros */
+#tesauroManagerModal .tm-row-selected {
+    background-color: #e0f2fe;      /* azul clarito pálido */
+}
+
+#tesauroManagerModal .tm-row-selected td {
+    background-color: #e0f2fe;      /* asegura que todas las celdas se pinten igual */
+}
+
+#tesauroManagerModal .tm-row:hover {
+    background-color: #f8fafc;      /* gris/azul muy suave al pasar el ratón */
 }

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <title>Editor Markdown</title>
+    <title>Editor Markdown Básico</title>
     <link rel="stylesheet" href="css/css.css" />
 </head>
 
@@ -13,22 +13,10 @@
         <h2>Editor Markdown</h2>
 
         <button class="btn" id="btnNuevo">📝 Nuevo</button>
-        <button class="btn" id="btnPegarAuto">📥 Pegar y Convertir</button>
         <button class="btn" id="btnCopiar">📋 Copiar Markdown</button>
         <button class="btn" id="btnDescargar">⬇️ Descargar .md</button>
 
         <hr>
-
-        <h2>Formato</h2>
-        <button class="btn md-btn" data-md="bold">** Negrita</button>
-        <button class="btn md-btn" data-md="italic">* Cursiva</button>
-        <button class="btn md-btn" data-md="h1"># Título 1</button>
-        <button class="btn md-btn" data-md="h2">## Título 2</button>
-        <button class="btn md-btn" data-md="ul">• Lista</button>
-        <button class="btn md-btn" data-md="ol">1. Lista</button>
-        <button class="btn md-btn" data-md="quote">❝ Cita</button>
-        <button class="btn md-btn" data-md="code">{ } Código</button>
-        <div class="panel-resizer" id="leftResizer"></div>
     </div>
 
     <!-- ZONA CENTRAL -->
@@ -36,8 +24,7 @@
 
         <h1 class="main-title">Área principal: Editor Markdown</h1>
 
-        <!-- Área de trabajo -->
-         <!-- TOOLBAR SUPERIOR -->
+        <!-- TOOLBAR SUPERIOR -->
         <div id="toolbar" class="toolbar">
             <button data-md="bold"><b>B</b></button>
             <button data-md="italic"><i>I</i></button>
@@ -57,35 +44,26 @@
 
             <button data-md="quote">❝</button>
             <button data-md="code">{ }</button>
-            
+
             <span class="separator"></span>
             <button data-md="table">📊 Tabla</button>
         </div>
-<div class="field-inserter">
-  <button id="btnInsertField" class="btn">➕ Insertar campo</button>
-</div>
-<div id="workContainer">
 
-    <!-- EDITOR VISUAL -->
-    <div id="visualEditor" contenteditable="true"></div>
+        <!-- SOLO EDITOR MARKDOWN -->
+        <div id="workContainer">
+            <textarea id="markdownText" spellcheck="false"></textarea>
+        </div>
 
-    <!-- EDITOR MARKDOWN -->
-    <textarea id="markdownText" spellcheck="false"></textarea>
-
-</div>
     </div>
 
-    <!-- PANEL DERECHO -->
-    <div id="rightPanel">
-        <h3>Vista Previa</h3>
-        <div id="preview"></div>
-
-        <div class="panel-resizer" id="rightResizer"></div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/GestionaTranslator.js"></script>
     <script src="js/editormarkdown.js"></script>
-     <script src="js/gestionacode.js"></script>
+    <script src="js/sections.js"></script>
+    <script src="js/let.js"></script>
+    <script src="js/definition.js"></script>
+    <!-- === TESAURO: integración panel y gestor completo === -->
+    <script src="js/datatesauro_md.js"></script>
+    <script src="js/tesauromanager_md.js"></script>
+    <!-- === FIN TESAURO === -->
+
 </body>
 </html>
