@@ -306,7 +306,22 @@ const LetManager = {
                         "></div>
                     </div>
                 </div>
+                <!-- === NUEVOS CONTROLES === -->
+                <div style="margin-top:10px; display:flex; gap:14px; align-items:center;">
 
+                    <!-- zeroIfNull -->
+                    <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:#374151;">
+                        <input id="letZeroIfNull" type="checkbox">
+                        Zero if null
+                    </label>
+
+                    <!-- decimals -->
+                    <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:#374151;">
+                        Decimales:
+                        <input id="letDecimals" type="number" min="0" step="1"
+                            style="width:60px; padding:4px 6px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+                    </label>
+                </div>
                 <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:8px;">
                     <button id="letCancelBtn" type="button" style="
                         padding:7px 12px;
@@ -337,6 +352,8 @@ const LetManager = {
         this.refSelect    = div.querySelector("#letRefSelect");
         this.refInput     = div.querySelector("#letRefInput");
         this.formulaInput = div.querySelector("#letFormulaInput");
+        this.zeroIfNullInput = div.querySelector("#letZeroIfNull");
+        this.decimalsInput   = div.querySelector("#letDecimals");
         this.tesauroList  = div.querySelector("#letTesauroList");
         this.defList      = div.querySelector("#letDefinitionList");
         this.tesauroSearch = div.querySelector("#letTesauroSearch");  // *** NUEVO ***
@@ -828,6 +845,17 @@ const LetManager = {
 
         let refPart    = (m[1] || "").trim();
         let formulaRaw = (m[2] || "").trim();
+        // Leer decimals:N
+        const decimalsMatch = inner.match(/decimals\s*:\s*([0-9]+)/i);
+        if (decimalsMatch && this.decimalsInput) {
+            this.decimalsInput.value = decimalsMatch[1].trim();
+        }
+
+        // Leer zeroIfNull:true
+        const zMatch = inner.match(/zeroIfNull\s*:\s*true/i);
+        if (this.zeroIfNullInput) {
+            this.zeroIfNullInput.checked = !!zMatch;
+        }
 
         // Reference: puede venir como personalized.REF
         let destRef = refPart;
@@ -944,7 +972,8 @@ const LetManager = {
             this.formulaInput.value = "";
             this.formulaInput.disabled = false;
         }
-
+        if (this.zeroIfNullInput) this.zeroIfNullInput.checked = false;
+        if (this.decimalsInput)   this.decimalsInput.value = "";
         // Si estamos editando un LET → precargar datos
         if (isEditing) {
             this.prefillFromExistingLet(existingLet);
@@ -1067,12 +1096,22 @@ const LetManager = {
             return;
         }
 
-        const letBlock =
-            "{{let | reference: " +
-            fullRef +
-            " | result: " +
-            formula +
-            "}}";
+        let attributes = 
+                "{{let | reference: " + fullRef +
+                " | result: " + formula;
+
+            if (this.decimalsInput) {
+                const dec = String(this.decimalsInput.value || "").trim();
+                if (dec !== "") {
+                    attributes += " | decimals:" + dec;
+                }
+            }
+
+            if (this.zeroIfNullInput && this.zeroIfNullInput.checked) {
+                attributes += " | zeroIfNull:true";
+            }
+
+            const letBlock = attributes + "}}";
 
         // Si estábamos editando un LET existente → reemplazar
         let insertStart, insertEnd;

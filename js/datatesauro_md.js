@@ -63,6 +63,36 @@ const DataTesauro = {
                     alert("TesauroManager no está disponible.");
                 }
             });
+
+                    // --- Botón global: marcar tesauro como no editable ---
+        const toolbar =
+            document.getElementById("toolbar") ||
+            document.querySelector(".toolbar");
+
+        if (toolbar && !document.getElementById("btnTesauroNoEditable")) {
+            const btnLock = document.createElement("button");
+            btnLock.id = "btnTesauroNoEditable";
+            btnLock.type = "button";
+            btnLock.title = "Marcar tesauro como no editable";
+            btnLock.innerHTML = "🔒 No editable";
+
+            // Intentar colocarlo a la derecha del botón "Anchos" (tablas)
+            const btnAnchos = document.getElementById("btnTableWidths");
+            if (btnAnchos && btnAnchos.nextSibling) {
+                toolbar.insertBefore(btnLock, btnAnchos.nextSibling);
+            } else if (btnAnchos) {
+                toolbar.appendChild(btnLock);
+            } else {
+                toolbar.appendChild(btnLock);
+            }
+
+            // No perder la selección al hacer click
+            btnLock.addEventListener("mousedown", (e) => e.preventDefault());
+            btnLock.addEventListener("click", () => {
+                DataTesauro.markSelectedTesauroNoEditable();
+            });
+        }
+
         }
 
         // Crear panel lateral si no existe
@@ -87,7 +117,18 @@ const DataTesauro = {
 
             this.listDiv = this.panel.querySelector("#tesauroList");
             this.renderList();
-        } else {
+        } 
+        // Botón "No editable" → marca el tesauro en el texto como editable:false
+        const noEditableBtn = this.panel.querySelector("#tesauroNoEditableBtn");
+        if (noEditableBtn && !noEditableBtn._boundNoEditable) {
+            noEditableBtn.addEventListener("click", () => {
+                this.markSelectedTesauroNoEditable();
+            });
+            noEditableBtn._boundNoEditable = true; // evitar doble binding
+        }
+
+
+        else {
             this.panel = document.getElementById("tesauroPanel");
             this.listDiv = this.panel.querySelector("#tesauroList");
         }
@@ -301,7 +342,57 @@ textarea.addEventListener("dragover", () => {
            // update highlight (ya se dispara por input, pero por si acaso)
     if (window.updateHighlight) updateHighlight();
     },
+    /* =======================================
+       Marcar tesauro seleccionado como no editable
+       ======================================= */
+    markSelectedTesauroNoEditable() {
+        const ta = this.targetTextarea;
+        if (!ta) return;
 
+        const text = ta.value || "";
+        const selStart = ta.selectionStart != null ? ta.selectionStart : 0;
+        const selEnd   = ta.selectionEnd != null ? ta.selectionEnd   : selStart;
+
+        // Buscar el bloque {{ ... }} que envuelve la selección
+        const start = text.lastIndexOf("{{", selStart);
+        const end   = text.indexOf("}}", selEnd);
+
+        if (start === -1 || end === -1) {
+            alert("Coloca el cursor dentro de un tesauro para marcarlo como no editable.");
+            return;
+        }
+
+        const blockEnd = end + 2; // incluir "}}"
+        const block = text.slice(start, blockEnd);
+
+        // Debe ser un tesauro personalized | reference:
+        if (!/personalized\b/i.test(block) || !/\breference\s*:/i.test(block)) {
+            alert("El bloque seleccionado no parece un tesauro {{personalized | reference: ...}}.");
+            return;
+        }
+
+        // Ya está en editable:false
+        if (/\|\s*editable\s*:\s*false\b/i.test(block)) {
+            alert("Este tesauro ya está marcado como no editable.");
+            return;
+        }
+
+        let newBlock;
+
+        // Si ya hay editable:algo → lo sustituimos
+        if (/\|\s*editable\s*:/i.test(block)) {
+            newBlock = block.replace(/\|\s*editable\s*:[^|}]+/i, " | editable:false");
+        } else {
+            // Si no hay editable → lo añadimos antes de las llaves de cierre
+            newBlock = block.replace(/\}\}\s*$/, " | editable:false}}");
+        }
+
+        ta.setRangeText(newBlock, start, blockEnd, "end");
+
+        if (typeof window.updateHighlight === "function") {
+            updateHighlight();
+        }
+    },
     /* =======================================
        UTILIDADES
        ======================================= */
