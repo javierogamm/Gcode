@@ -38,6 +38,7 @@ const Sections = {
     init() {
         const ta = document.getElementById("markdownText");
         const toolbar = document.getElementById("toolbar");
+        const floatingRow = (window.ensureFloatingActionRow && ensureFloatingActionRow()) || null;
         if (!ta || !toolbar) return;
 
         this.textarea = ta;
@@ -49,10 +50,10 @@ const Sections = {
             btn.id = "btnSections";
             btn.type = "button";
             btn.textContent = "Sections";
+            btn.className = "floating-action-btn";
 
-            const underlineBtn = toolbar.querySelector('button[data-md="underline"]');
-            if (underlineBtn && underlineBtn.nextSibling) {
-                toolbar.insertBefore(btn, underlineBtn.nextSibling);
+            if (floatingRow) {
+                floatingRow.appendChild(btn);
             } else {
                 toolbar.appendChild(btn);
             }

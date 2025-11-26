@@ -61,6 +61,7 @@ const LetManager = {
         const toolbar =
             document.getElementById("toolbar") ||
             document.querySelector(".toolbar");
+        const floatingRow = (window.ensureFloatingActionRow && ensureFloatingActionRow()) || null;
 
         if (!ta || !toolbar) return;
 
@@ -73,12 +74,10 @@ const LetManager = {
             btn.id = "btnLet";
             btn.type = "button";
             btn.textContent = "LET";
-            btn.style.fontWeight = "600";
+            btn.className = "floating-action-btn";
 
-            // Intentar ponerlo después del botón Sections
-            const secBtn = toolbar.querySelector("#btnSections");
-            if (secBtn && secBtn.nextSibling) {
-                toolbar.insertBefore(btn, secBtn.nextSibling);
+            if (floatingRow) {
+                floatingRow.appendChild(btn);
             } else {
                 toolbar.appendChild(btn);
             }
