@@ -719,7 +719,7 @@ function updateHighlight() {
             });
         } else {
             // CIERRE VÁLIDO SOLO SI: {{/section_NOMBRE}}
-            const syntaxOkClose = /^\{\{\/section_[^}\s|]+\}\}$/i.test(full);
+            const syntaxOkClose = /^\{\{\/section_[^}\s|]+\s*\}\}$/i.test(full);
             tokens.push({
                 type: "close",
                 name: name,
