@@ -161,44 +161,62 @@ async function importDocumentToMarkdown(file) {
 
 async function pdfFileToMarkdown(file) {
     const arrayBuffer = await file.arrayBuffer();
-    if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.worker.min.js";
-    }
+    const readPdf = async (opts = {}) => {
+        const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer, ...opts }).promise;
+        const pages = [];
 
-    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    const pages = [];
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            console.log(`[IMPORT][PDF] Leyendo página ${pageNum}/${pdf.numPages}`);
+            const page = await pdf.getPage(pageNum);
+            const content = await page.getTextContent();
+            const items = content.items || [];
 
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const content = await page.getTextContent();
-        const items = content.items || [];
-        let currentLine = "";
-        const lines = [];
+            const lines = [];
+            let lastY = null;
+            let currentLine = [];
 
-        items.forEach((item) => {
-            const chunk = (item.str || "").trim();
-            if (!chunk) return;
+            items.forEach((item) => {
+                const text = (item.str || "").trim();
+                if (!text) return;
 
-            currentLine += chunk;
-            if (!item.hasEOL) {
-                currentLine += " ";
-                return;
+                const y = item.transform && item.transform[5];
+                if (lastY !== null && Math.abs(y - lastY) > 2) {
+                    if (currentLine.length) lines.push(currentLine.join(" "));
+                    currentLine = [];
+                }
+
+                currentLine.push(text);
+                lastY = y;
+
+                if (item.hasEOL) {
+                    lines.push(currentLine.join(" "));
+                    currentLine = [];
+                    lastY = null;
+                }
+            });
+
+            if (currentLine.length) {
+                lines.push(currentLine.join(" "));
             }
 
-            lines.push(currentLine.trim());
-            currentLine = "";
-        });
-
-        if (currentLine.trim()) {
-            lines.push(currentLine.trim());
+            if (lines.length) {
+                pages.push(lines.join("\n"));
+            }
         }
 
-        if (lines.length) {
-            pages.push(lines.join("\n"));
+        return pages.join("\n\n");
+    };
+
+    try {
+        if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.worker.min.js";
         }
+        return await readPdf();
+    } catch (err) {
+        console.warn("[IMPORT][PDF] Error con worker, reintentando sin worker", err);
+        window.pdfjsLib.disableWorker = true;
+        return await readPdf({});
     }
-
-    return pages.join("\n\n");
 }
 
 async function docxToMarkdown(file) {
@@ -240,7 +258,16 @@ async function docxToMarkdown(file) {
         blocks.push("");
     });
 
-    return blocks.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    const markdown = blocks.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+
+    // Fallback a lectura "plana" si el DOCX vino corrupto o vacío
+    if (!markdown || /[\uFFFD]{2,}/.test(markdown)) {
+        console.warn("[IMPORT][DOCX] Resultado sospechoso, aplicando fallback plano");
+        const plain = await docToMarkdown(file).catch(() => "");
+        return plain || markdown;
+    }
+
+    return markdown;
 }
 
 function getHeadingLevel(styleVal) {
@@ -256,20 +283,28 @@ function extractDocxParagraphText(paragraph) {
     let result = "";
 
     runs.forEach(run => {
-        const texts = [...run.getElementsByTagName("w:t")].map(t => t.textContent).join("");
-        if (!texts) return;
+        const textNodes = [...run.getElementsByTagName("w:t")];
+        const brNodes = [...run.getElementsByTagName("w:br")];
+        const hasBreak = brNodes.length > 0;
+
+        const texts = textNodes.map(t => t.textContent || "").join("");
+        if (!texts && !hasBreak) return;
 
         const isBold = run.getElementsByTagName("w:b").length > 0;
         const isItalic = run.getElementsByTagName("w:i").length > 0;
-        let chunk = texts;
+        let chunk = texts || "";
 
         if (isBold) chunk = `**${chunk}**`;
         if (isItalic) chunk = `*${chunk}*`;
 
         result += chunk;
+
+        if (hasBreak) {
+            result += "\n";
+        }
     });
 
-    return result.trim();
+    return result.replace(/[ ]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 async function docToMarkdown(file) {
