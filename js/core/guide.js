@@ -25,6 +25,7 @@
         steps: [],
         current: 0,
         active: false,
+        cleanup: null,
         elements: {
             layer: null,
             dim: null,
@@ -35,7 +36,8 @@
             prevBtn: null,
             nextBtn: null,
             exitBtn: null
-        }
+        },
+        dragDemo: null
     };
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -124,12 +126,14 @@
         state.steps = steps;
         state.current = 0;
         state.active = true;
+        state.cleanup = null;
 
         state.elements.layer.classList.add("active");
         renderStep(0);
     }
 
     function endGuide() {
+        runCleanup();
         state.active = false;
         state.elements.layer.classList.remove("active");
     }
@@ -163,6 +167,20 @@
             const text = btn.textContent.trim() || "Botón flotante";
             const custom = messages.floatingButtons[id];
             const description = custom || `Acción rápida: ${text}. Inserta contenido directamente en el editor.`;
+
+            if (id === "btnTesauro") {
+                steps.push({
+                    title: text || "Insertar Tesauro",
+                    description: "Abre el panel lateral y arrastra tesauros al texto o insértalos con un clic.",
+                    element: () => ensureTesauroPanelOpen() || btn,
+                    onEnter: () => {
+                        const panel = document.getElementById("tesauroPanel");
+                        showDragDemo(panel);
+                    }
+                });
+                return;
+            }
+
             steps.push({
                 title: text,
                 description,
@@ -171,17 +189,16 @@
         });
 
         if (managerBtn) {
-            steps.push({
-                title: messages.tesauroManager.title,
-                description: messages.tesauroManager.description,
-                element: () => managerBtn
-            });
+            steps.push(...buildTesauroManagerSteps(managerBtn));
         }
 
         return steps;
     }
 
     function goToStep(index) {
+        if (index !== state.current) {
+            runCleanup();
+        }
         if (index < 0) {
             return;
         }
@@ -213,6 +230,13 @@
         state.elements.nextBtn.textContent = isLast ? "Finalizar" : "Siguiente";
 
         placeTooltipNear(target);
+
+        if (typeof step.onEnter === "function") {
+            const result = step.onEnter(target);
+            if (typeof result === "function") {
+                state.cleanup = result;
+            }
+        }
     }
 
     function positionHighlight(target) {
@@ -258,5 +282,131 @@
 
         tooltip.style.left = `${left}px`;
         tooltip.style.top = `${top}px`;
+    }
+
+    function runCleanup() {
+        if (typeof state.cleanup === "function") {
+            try { state.cleanup(); } catch (err) { console.error(err); }
+        }
+        state.cleanup = null;
+        removeDragDemo();
+    }
+
+    function ensureTesauroPanelOpen() {
+        const panel = document.getElementById("tesauroPanel");
+        if (panel && !panel.classList.contains("visible")) {
+            panel.classList.add("visible");
+        } else if (!panel && window.DataTesauro && typeof DataTesauro.togglePanel === "function") {
+            DataTesauro.togglePanel();
+        }
+        return document.getElementById("tesauroPanel") || panel;
+    }
+
+    function showDragDemo(panel) {
+        if (!panel) return;
+        removeDragDemo();
+        const editor = document.getElementById("markdownText") || document.getElementById("workContainer");
+        const panelRect = panel.getBoundingClientRect();
+        const editorRect = editor ? editor.getBoundingClientRect() : null;
+
+        const demo = document.createElement("div");
+        demo.className = "guide-drag-demo";
+        demo.innerHTML = `
+            <span class="guide-drag-dot">🏷️</span>
+            <span class="guide-drag-label">Arrastra al texto</span>
+        `;
+
+        const baseLeft = panelRect.left + panelRect.width * 0.15;
+        const baseTop = panelRect.top + 80;
+
+        demo.style.left = `${baseLeft}px`;
+        demo.style.top = `${baseTop}px`;
+
+        if (editorRect) {
+            const deltaX = Math.max(-250, editorRect.left - baseLeft + 20);
+            const deltaY = Math.max(-60, Math.min(120, editorRect.top - baseTop + 60));
+            demo.style.setProperty("--drag-x", `${deltaX}px`);
+            demo.style.setProperty("--drag-y", `${deltaY}px`);
+        }
+
+        document.body.appendChild(demo);
+        state.dragDemo = demo;
+    }
+
+    function removeDragDemo() {
+        if (state.dragDemo && state.dragDemo.parentNode) {
+            state.dragDemo.parentNode.removeChild(state.dragDemo);
+        }
+        state.dragDemo = null;
+    }
+
+    function buildTesauroManagerSteps(managerBtn) {
+        const steps = [];
+        const ensureManager = () => {
+            if (window.TesauroManager && typeof TesauroManager.open === "function") {
+                TesauroManager.open();
+                return TesauroManager.modal || document.getElementById("tesauroManagerModal");
+            }
+            return null;
+        };
+
+        steps.push({
+            title: messages.tesauroManager.title,
+            description: messages.tesauroManager.description,
+            element: () => ensureManager() || managerBtn,
+            onEnter: () => ensureManager()
+        });
+
+        const managerButtons = [
+            {
+                id: "tmExportTesauroAll",
+                title: "Exportar tesauros",
+                description: "Genera los 3 CSV oficiales del tesauro con los nombres de Entidad y Actividad que definas."
+            },
+            {
+                id: "tmOpenPlainImport",
+                title: "Importar tesauros (texto)",
+                description: "Pega tesauros en texto plano para cargarlos masivamente en la tabla."
+            },
+            {
+                id: "tmOpenMdImport",
+                title: "Importar desde Markdown",
+                description: "Detecta tesauros dentro de un Markdown y los añade al gestor sin perder el formato."
+            },
+            {
+                id: "tmOpenRefPopup",
+                title: "Referenciar tesauros",
+                description: "Crea referencias cruzadas entre tesauros existentes para reutilizarlos."
+            },
+            {
+                id: "tmNewTesauro",
+                title: "Crear tesauro",
+                description: "Añade una fila nueva para definir un tesauro desde cero."
+            },
+            {
+                id: "tmSave",
+                title: "Guardar cambios",
+                description: "Guarda en bloque todas las ediciones realizadas en la tabla."
+            },
+            {
+                id: "tmClose",
+                title: "Cerrar gestor",
+                description: "Cierra el gestor y vuelve al editor manteniendo los cambios."
+            }
+        ];
+
+        managerButtons.forEach((info) => {
+            steps.push({
+                title: info.title,
+                description: info.description,
+                element: () => {
+                    const modal = ensureManager();
+                    return modal ? modal.querySelector(`#${info.id}`) : null;
+                },
+                onEnter: () => ensureManager()
+            });
+        });
+
+        return steps;
     }
 })();
