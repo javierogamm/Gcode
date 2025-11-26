@@ -94,31 +94,6 @@ const DataTesauro = {
                     alert("TesauroManager no está disponible.");
                 }
             });
-
-                    // --- Botón global: marcar tesauro como no editable ---
-        const toolbar =
-            document.getElementById("toolbar") ||
-            document.querySelector(".toolbar");
-
-        if (toolbar && !document.getElementById("btnTesauroNoEditable")) {
-            const btnLock = document.createElement("button");
-            btnLock.id = "btnTesauroNoEditable";
-            btnLock.type = "button";
-            btnLock.title = "Marcar tesauro como no editable";
-            btnLock.innerHTML = "🔒 No editable";
-
-            // Colocar el botón al final de la fila (a la derecha)
-            toolbar.appendChild(btnLock);
-            btnLock.style.marginLeft = "auto";
-            btnLock.style.order = "999";
-
-            // No perder la selección al hacer click
-            btnLock.addEventListener("mousedown", (e) => e.preventDefault());
-            btnLock.addEventListener("click", () => {
-                DataTesauro.markSelectedTesauroNoEditable();
-            });
-        }
-
         }
 
         // Crear panel lateral si no existe
@@ -226,6 +201,7 @@ const DataTesauro = {
                                 </span>
                                 <button class="tesauro-mini-btn tesauro-insert" data-ref="${this.escapeAttr(campo.ref)}">➕</button>
                                 <button class="tesauro-mini-btn tesauro-edit" data-id="${campo.id}">✏</button>
+                                <button class="tesauro-mini-btn tesauro-lock" title="Marcar en texto como no editable">🔒</button>
                                 <button class="tesauro-mini-btn tesauro-del" data-id="${campo.id}">🗑</button>
                             </div>
                         </div>
@@ -259,6 +235,13 @@ const DataTesauro = {
                 if (!formSection) return;
 
                            });
+        });
+
+        this.listDiv.querySelectorAll(".tesauro-lock").forEach(btn => {
+            btn.addEventListener("mousedown", (e) => e.preventDefault());
+            btn.addEventListener("click", () => {
+                this.markSelectedTesauroNoEditable();
+            });
         });
 
         this.listDiv.querySelectorAll(".tesauro-del").forEach(btn => {
