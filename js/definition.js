@@ -361,12 +361,12 @@ const DefinitionManager = {
                 ? block + "\n\n"
                 : (needsLeadingNewline ? "\n" : "") + block + "\n");
 
+        // Sustituimos el texto completo con la nueva definition en su zona
+        ta.value = before + textToInsert + after;
+
         if (window.UndoManager && typeof UndoManager.saveState === "function") {
             UndoManager.saveState();
         }
-
-        // Sustituimos el texto completo con la nueva definition en su zona
-        ta.value = before + textToInsert + after;
 
         if (typeof window.updateHighlight === "function") {
             updateHighlight();

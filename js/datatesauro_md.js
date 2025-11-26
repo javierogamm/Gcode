@@ -339,8 +339,12 @@ textarea.addEventListener("dragover", () => {
         const marker = ` {{personalized | reference: ${refTesauro}}} `;
 
         ta.setRangeText(marker, start, end, "end");
-           // update highlight (ya se dispara por input, pero por si acaso)
-    if (window.updateHighlight) updateHighlight();
+        if (window.UndoManager && typeof UndoManager.saveState === "function") {
+            UndoManager.saveState();
+        }
+
+        // update highlight (ya se dispara por input, pero por si acaso)
+        if (window.updateHighlight) updateHighlight();
     },
     /* =======================================
        Marcar tesauro seleccionado como no editable

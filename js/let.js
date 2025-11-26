@@ -1123,11 +1123,11 @@ const LetManager = {
             insertEnd   = insertStart;
         }
 
+        ta.setRangeText(letBlock, insertStart, insertEnd, "end");
+
         if (window.UndoManager && typeof UndoManager.saveState === "function") {
             UndoManager.saveState();
         }
-
-        ta.setRangeText(letBlock, insertStart, insertEnd, "end");
 
         if (typeof window.updateHighlight === "function") {
             updateHighlight();
