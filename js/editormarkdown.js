@@ -145,6 +145,19 @@ function pushUndoState() {
     UndoManager.push(markdownText.value);
 }
 
+// Registrar un cambio desde cualquier textarea (por ejemplo, inserciones programáticas)
+function recordUndoAfterChange(targetTextarea) {
+    const source = targetTextarea || markdownText;
+    if (!source) return;
+
+    const value = source.value;
+    if (window.UndoManager && typeof UndoManager.push === "function") {
+        UndoManager.push(value);
+    } else if (typeof window.pushUndoState === "function") {
+        pushUndoState();
+    }
+}
+
 /* =======================================
    TOOLBAR → APLICAR FORMATO MARKDOWN
 ======================================= */
@@ -548,6 +561,10 @@ if (markdownText.parentElement) {
 
         tbox.innerHTML = `
             <label style="display:flex;align-items:center;gap:3px;cursor:pointer;">
+                <input id="toggleAllHighlight" type="checkbox" checked style="margin:0;" />
+                <span>Todo</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:3px;cursor:pointer;">
                 <input id="toggleSections" type="checkbox" checked style="margin:0;" />
                 <span>Sections</span>
             </label>
@@ -555,25 +572,65 @@ if (markdownText.parentElement) {
                 <input id="toggleTesauros" type="checkbox" checked style="margin:0;" />
                 <span>Tesauros</span>
             </label>
+            <label style="display:flex;align-items:center;gap:3px;cursor:pointer;">
+                <input id="toggleLet" type="checkbox" checked style="margin:0;" />
+                <span>LET/Def</span>
+            </label>
         `;
 
         parent.appendChild(tbox);
 
+        const chkAll = tbox.querySelector("#toggleAllHighlight");
         const chkSec = tbox.querySelector("#toggleSections");
         const chkTes = tbox.querySelector("#toggleTesauros");
+        const chkLet = tbox.querySelector("#toggleLet");
 
+        const refreshAllState = () => {
+            if (!chkAll) return;
+            const allOn = highlightSections && highlightTesauros && highlightLet;
+            const anyOn = highlightSections || highlightTesauros || highlightLet;
+            chkAll.checked = allOn;
+            chkAll.indeterminate = !allOn && anyOn;
+        };
+
+        if (chkAll) {
+            chkAll.addEventListener("change", () => {
+                const enabled = chkAll.checked;
+                highlightSections = enabled;
+                highlightTesauros = enabled;
+                highlightLet = enabled;
+
+                if (chkSec) chkSec.checked = enabled;
+                if (chkTes) chkTes.checked = enabled;
+                if (chkLet) chkLet.checked = enabled;
+
+                chkAll.indeterminate = false;
+                updateHighlight();
+            });
+        }
         if (chkSec) {
             chkSec.addEventListener("change", () => {
                 highlightSections = chkSec.checked;
+                refreshAllState();
                 updateHighlight();
             });
         }
         if (chkTes) {
             chkTes.addEventListener("change", () => {
                 highlightTesauros = chkTes.checked;
+                refreshAllState();
                 updateHighlight();
             });
         }
+        if (chkLet) {
+            chkLet.addEventListener("change", () => {
+                highlightLet = chkLet.checked;
+                refreshAllState();
+                updateHighlight();
+            });
+        }
+
+        refreshAllState();
     }
 }
 
@@ -662,7 +719,7 @@ function updateHighlight() {
             });
         } else {
             // CIERRE VÁLIDO SOLO SI: {{/section_NOMBRE}}
-            const syntaxOkClose = /^\{\{\/section_[^}\s|]+\}\}$/i.test(full);
+            const syntaxOkClose = /^\{\{\/section_[^}\s|]+\s*\}\}$/i.test(full);
             tokens.push({
                 type: "close",
                 name: name,
@@ -805,20 +862,21 @@ function updateHighlight() {
             );
         }
 
-        // LET: azul cobalto (siempre activo)
-        safe = safe.replace(
-            /\{\{\s*let\b[^}]*\}\}/gi,
-            function (matchLet) {
-                return '<span class="let-block">' + matchLet + '</span>';
-            }
-        );
-        // ⭐ NUEVO: DEFINITION azul pálido
-        safe = safe.replace(
-            /\{\{\s*definition\b[^}]*\}\}/gi,
-            function (matchDef) {
-                return '<span class="definition-block">' + matchDef + '</span>';
-            }
-        );
+        // LET / DEFINITION (toggle compartido)
+        if (typeof highlightLet === "undefined" || highlightLet) {
+            safe = safe.replace(
+                /\{\{\s*let\b[^}]*\}\}/gi,
+                function (matchLet) {
+                    return '<span class="let-block">' + matchLet + '</span>';
+                }
+            );
+            safe = safe.replace(
+                /\{\{\s*definition\b[^}]*\}\}/gi,
+                function (matchDef) {
+                    return '<span class="definition-block">' + matchDef + '</span>';
+                }
+            );
+        }
         // TAGS PARCIALES de sección (sin cerrar con "}}") solo cuando
         // no estamos ya en una sección y con highlightSections activo
         if (

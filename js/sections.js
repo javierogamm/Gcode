@@ -1042,11 +1042,11 @@ if (this.nameInput) {
 
         const wrapped = openTag + "\n" + selected + "\n" + closeTag;
 
-        if (window.UndoManager && typeof UndoManager.saveState === "function") {
-            UndoManager.saveState();
-        }
-
         ta.setRangeText(wrapped, start, end, "end");
+
+        if (typeof window.recordUndoAfterChange === "function") {
+            recordUndoAfterChange(ta);
+        }
 
         if (typeof window.updateHighlight === "function") {
             updateHighlight();
