@@ -364,8 +364,8 @@ const DefinitionManager = {
         // Sustituimos el texto completo con la nueva definition en su zona
         ta.value = before + textToInsert + after;
 
-        if (window.UndoManager && typeof UndoManager.saveState === "function") {
-            UndoManager.saveState();
+        if (typeof window.recordUndoAfterChange === "function") {
+            recordUndoAfterChange(ta);
         }
 
         if (typeof window.updateHighlight === "function") {

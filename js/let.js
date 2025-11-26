@@ -1125,8 +1125,8 @@ const LetManager = {
 
         ta.setRangeText(letBlock, insertStart, insertEnd, "end");
 
-        if (window.UndoManager && typeof UndoManager.saveState === "function") {
-            UndoManager.saveState();
+        if (typeof window.recordUndoAfterChange === "function") {
+            recordUndoAfterChange(ta);
         }
 
         if (typeof window.updateHighlight === "function") {

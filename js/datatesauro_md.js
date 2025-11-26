@@ -339,8 +339,8 @@ textarea.addEventListener("dragover", () => {
         const marker = ` {{personalized | reference: ${refTesauro}}} `;
 
         ta.setRangeText(marker, start, end, "end");
-        if (window.UndoManager && typeof UndoManager.saveState === "function") {
-            UndoManager.saveState();
+        if (typeof window.recordUndoAfterChange === "function") {
+            recordUndoAfterChange(ta);
         }
 
         // update highlight (ya se dispara por input, pero por si acaso)

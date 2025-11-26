@@ -145,6 +145,19 @@ function pushUndoState() {
     UndoManager.push(markdownText.value);
 }
 
+// Registrar un cambio desde cualquier textarea (por ejemplo, inserciones programáticas)
+function recordUndoAfterChange(targetTextarea) {
+    const source = targetTextarea || markdownText;
+    if (!source) return;
+
+    const value = source.value;
+    if (window.UndoManager && typeof UndoManager.push === "function") {
+        UndoManager.push(value);
+    } else if (typeof window.pushUndoState === "function") {
+        pushUndoState();
+    }
+}
+
 /* =======================================
    TOOLBAR → APLICAR FORMATO MARKDOWN
 ======================================= */
@@ -555,12 +568,17 @@ if (markdownText.parentElement) {
                 <input id="toggleTesauros" type="checkbox" checked style="margin:0;" />
                 <span>Tesauros</span>
             </label>
+            <label style="display:flex;align-items:center;gap:3px;cursor:pointer;">
+                <input id="toggleLet" type="checkbox" checked style="margin:0;" />
+                <span>LET/Def</span>
+            </label>
         `;
 
         parent.appendChild(tbox);
 
         const chkSec = tbox.querySelector("#toggleSections");
         const chkTes = tbox.querySelector("#toggleTesauros");
+        const chkLet = tbox.querySelector("#toggleLet");
 
         if (chkSec) {
             chkSec.addEventListener("change", () => {
@@ -571,6 +589,12 @@ if (markdownText.parentElement) {
         if (chkTes) {
             chkTes.addEventListener("change", () => {
                 highlightTesauros = chkTes.checked;
+                updateHighlight();
+            });
+        }
+        if (chkLet) {
+            chkLet.addEventListener("change", () => {
+                highlightLet = chkLet.checked;
                 updateHighlight();
             });
         }
@@ -805,20 +829,21 @@ function updateHighlight() {
             );
         }
 
-        // LET: azul cobalto (siempre activo)
-        safe = safe.replace(
-            /\{\{\s*let\b[^}]*\}\}/gi,
-            function (matchLet) {
-                return '<span class="let-block">' + matchLet + '</span>';
-            }
-        );
-        // ⭐ NUEVO: DEFINITION azul pálido
-        safe = safe.replace(
-            /\{\{\s*definition\b[^}]*\}\}/gi,
-            function (matchDef) {
-                return '<span class="definition-block">' + matchDef + '</span>';
-            }
-        );
+        // LET / DEFINITION (toggle compartido)
+        if (typeof highlightLet === "undefined" || highlightLet) {
+            safe = safe.replace(
+                /\{\{\s*let\b[^}]*\}\}/gi,
+                function (matchLet) {
+                    return '<span class="let-block">' + matchLet + '</span>';
+                }
+            );
+            safe = safe.replace(
+                /\{\{\s*definition\b[^}]*\}\}/gi,
+                function (matchDef) {
+                    return '<span class="definition-block">' + matchDef + '</span>';
+                }
+            );
+        }
         // TAGS PARCIALES de sección (sin cerrar con "}}") solo cuando
         // no estamos ya en una sección y con highlightSections activo
         if (
