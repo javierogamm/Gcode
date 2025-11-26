@@ -99,26 +99,28 @@ if (btnImportDoc) {
     btnImportDoc.addEventListener("click", () => {
         const input = document.createElement("input");
         input.type = "file";
-        input.accept = ".docx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        input.accept = ".doc,.docx,.pdf,application/msword,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
         input.addEventListener("change", async (e) => {
             const file = e.target.files && e.target.files[0];
             if (!file) return;
 
             try {
+                console.log("[IMPORT] Iniciando importación", { nombre: file.name, tipo: file.type, tamano: file.size });
                 btnImportDoc.disabled = true;
                 btnImportDoc.textContent = "⏳ Importando...";
 
                 const markdown = await importDocumentToMarkdown(file);
-                markdownText.value = markdown;
+                markdownText.value = markdown || "";
                 if (typeof pushUndoState === "function") {
                     pushUndoState();
                 }
                 if (typeof updateHighlight === "function") {
                     updateHighlight();
                 }
+                console.log("[IMPORT] Importación completada", { nombre: file.name, caracteres: (markdown || "").length });
             } catch (err) {
-                console.error(err);
+                console.error("[IMPORT] Falló la importación", err);
                 alert("No se pudo importar el documento. " + (err && err.message ? err.message : ""));
             } finally {
                 btnImportDoc.disabled = false;
@@ -135,18 +137,26 @@ async function importDocumentToMarkdown(file) {
     const name = (file && file.name ? file.name : "").toLowerCase();
 
     if (name.endsWith(".pdf")) {
+        console.log("[IMPORT] Detectado PDF");
         await ensurePdfJs();
         const text = await pdfFileToMarkdown(file);
         return (text || "").trim();
     }
 
     if (name.endsWith(".docx")) {
+        console.log("[IMPORT] Detectado DOCX");
         await ensureJsZip();
         const md = await docxToMarkdown(file);
         return (md || "").trim();
     }
 
-    throw new Error("Formato no soportado. Usa Word (.docx) o PDF.");
+    if (name.endsWith(".doc")) {
+        console.log("[IMPORT] Detectado DOC (modo texto)");
+        const md = await docToMarkdown(file);
+        return (md || "").trim();
+    }
+
+    throw new Error("Formato no soportado. Usa Word (.doc/.docx) o PDF.");
 }
 
 async function pdfFileToMarkdown(file) {
@@ -260,6 +270,30 @@ function extractDocxParagraphText(paragraph) {
     });
 
     return result.trim();
+}
+
+async function docToMarkdown(file) {
+    const arrayBuffer = await file.arrayBuffer();
+
+    let decoded = new TextDecoder("utf-8", { fatal: false }).decode(arrayBuffer);
+    // Si viene en UTF-16 con muchos nulls, reintentar en LE
+    if (/\u0000.{1}/.test(decoded.slice(0, 100))) {
+        decoded = new TextDecoder("utf-16le", { fatal: false }).decode(arrayBuffer);
+    }
+
+    const cleaned = decoded
+        .replace(/[\x00-\x08\x0B-\x1F\x7F-\x9F]+/g, " ")
+        .replace(/[ ]{3,}/g, "\n")
+        .split(/\n+/)
+        .map(line => line.trim())
+        .filter(Boolean)
+        .join("\n\n");
+
+    if (!cleaned) {
+        throw new Error("No se pudo leer texto del archivo .doc");
+    }
+
+    return cleaned;
 }
 
 async function ensurePdfJs() {
