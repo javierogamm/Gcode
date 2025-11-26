@@ -33,7 +33,6 @@ const DataTesauro = {
     quickCreateRefInput: null,
     quickCreateTypeSelect: null,
     quickRefEdited: false,
-    dropIndicator: null,
 
     /* =======================================
        INICIALIZAR PARA ESTE EDITOR
@@ -293,20 +292,32 @@ const DataTesauro = {
        DRAG & DROP HACIA EL TEXTAREA
        ======================================= */
     setupMarkdownDrop(textarea) {
-        if (!textarea) return;
+        // --- Mantener visualmente la selección durante el drag/drop ---
+        let savedSelStart = 0;
+        let savedSelEnd = 0;
 
-        // Dragover: permitir soltar si viene un tesauro y marcar la posición de inserción
+        // Guardar la selección cuando comienza el drag desde un tesauro
+        document.addEventListener("dragstart", () => {
+            savedSelStart = textarea.selectionStart;
+            savedSelEnd = textarea.selectionEnd;
+        });
+
+        // Restaurar visual al entrar en el área del textarea
+        textarea.addEventListener("dragenter", () => {
+            textarea.setSelectionRange(savedSelStart, savedSelEnd);
+        });
+
+        // Restaurar visual mientras el usuario mueve el tesauro por encima
+        textarea.addEventListener("dragover", () => {
+            textarea.setSelectionRange(savedSelStart, savedSelEnd);
+        });
+
+        // Dragover: permitir soltar si viene un tesauro
         textarea.addEventListener("dragover", (e) => {
             const types = Array.from(e.dataTransfer.types || []);
             if (types.includes("application/x-tesauro")) {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "copy";
-
-                const caret = this.getCaretIndexFromPoint(textarea, e.clientX, e.clientY);
-                if (caret != null) {
-                    textarea.setSelectionRange(caret, caret);
-                    this.showCaretIndicator(textarea, caret);
-                }
             }
         });
 
@@ -325,20 +336,11 @@ const DataTesauro = {
                 return;
             }
 
-            const caret = this.getCaretIndexFromPoint(textarea, e.clientX, e.clientY);
-            if (caret != null) {
-                textarea.setSelectionRange(caret, caret);
-            }
-
             const ref = payload.refCampo || payload.ref || payload.refTesauro;
             if (!ref) return;
 
-            this.insertReferenceIntoMarkdown(ref, caret != null ? caret : undefined);
-            this.hideCaretIndicator();
+            this.insertReferenceIntoMarkdown(ref);
         });
-
-        textarea.addEventListener("dragleave", () => this.hideCaretIndicator());
-        textarea.addEventListener("dragend", () => this.hideCaretIndicator());
     },
 
     handleDragStart(e, pill) {
@@ -352,206 +354,14 @@ const DataTesauro = {
         e.dataTransfer.effectAllowed = "copy";
     },
 
-    getCaretIndexFromPoint(textarea, clientX, clientY) {
-        if (!textarea) return null;
-
-        const mirror = this.getCaretMirror(textarea);
-        if (!mirror) return null;
-
-        mirror.scrollTop = textarea.scrollTop;
-        mirror.scrollLeft = textarea.scrollLeft;
-
-        const rect = textarea.getBoundingClientRect();
-        mirror.style.left = `${rect.left + window.scrollX}px`;
-        mirror.style.top = `${rect.top + window.scrollY}px`;
-        mirror.style.width = `${textarea.clientWidth}px`;
-
-        const text = textarea.value || "";
-        const len = text.length;
-        let low = 0;
-        let high = len;
-        let best = len;
-
-        const targetX = clientX - rect.left + textarea.scrollLeft;
-        const targetY = clientY - rect.top + textarea.scrollTop;
-
-        while (low <= high) {
-            const mid = Math.floor((low + high) / 2);
-            const coords = this.getCaretCoordinates(textarea, mirror, mid);
-            if (!coords) break;
-
-            const { left, right, top, bottom } = this.toLocalCoordinates(coords, rect, textarea);
-
-            if (targetY < top) {
-                best = mid;
-                high = mid - 1;
-                continue;
-            }
-            if (targetY > bottom) {
-                low = mid + 1;
-                continue;
-            }
-
-            if (targetX < left) {
-                best = mid;
-                high = mid - 1;
-                continue;
-            }
-            if (targetX > right) {
-                low = mid + 1;
-                best = Math.min(mid + 1, len);
-                continue;
-            }
-
-            best = mid;
-            break;
-        }
-
-        return Math.min(Math.max(best, 0), len);
-    },
-
-    getCaretMirror(textarea) {
-        if (!this.caretMirror) {
-            const div = document.createElement("div");
-            div.id = "tesauroCaretMirror";
-            div.style.position = "absolute";
-            div.style.visibility = "hidden";
-            div.style.whiteSpace = "pre-wrap";
-            div.style.wordBreak = "break-word";
-            div.style.overflowWrap = "break-word";
-            div.style.pointerEvents = "none";
-            document.body.appendChild(div);
-            this.caretMirror = div;
-        }
-
-        const mirror = this.caretMirror;
-        const style = window.getComputedStyle(textarea);
-        const properties = [
-            "fontFamily",
-            "fontSize",
-            "fontWeight",
-            "fontStyle",
-            "lineHeight",
-            "paddingTop",
-            "paddingRight",
-            "paddingBottom",
-            "paddingLeft",
-            "borderTopWidth",
-            "borderRightWidth",
-            "borderBottomWidth",
-            "borderLeftWidth",
-            "boxSizing",
-            "letterSpacing",
-        ];
-
-        properties.forEach(prop => {
-            mirror.style[prop] = style[prop];
-        });
-
-        mirror.style.whiteSpace = "pre-wrap";
-        mirror.style.wordBreak = "break-word";
-        mirror.style.overflowWrap = "break-word";
-        mirror.style.height = "auto";
-        mirror.style.minHeight = `${textarea.clientHeight}px`;
-
-        return mirror;
-    },
-
-    getCaretCoordinates(textarea, mirror, index) {
-        if (!mirror) return null;
-        const text = textarea.value || "";
-
-        mirror.textContent = text.slice(0, index);
-        const marker = document.createElement("span");
-        marker.textContent = "\u200b"; // marcador de ancho cero
-        mirror.appendChild(marker);
-
-        const rect = marker.getBoundingClientRect();
-        mirror.removeChild(marker);
-
-        return {
-            left: rect.left,
-            right: rect.right,
-            top: rect.top,
-            bottom: rect.bottom,
-        };
-    },
-
-    toLocalCoordinates(coords, textareaRect, textarea) {
-        const { left, right, top, bottom } = coords;
-        const scrollLeft = textarea.scrollLeft;
-        const scrollTop = textarea.scrollTop;
-
-        return {
-            left: left - textareaRect.left + scrollLeft,
-            right: right - textareaRect.left + scrollLeft,
-            top: top - textareaRect.top + scrollTop,
-            bottom: bottom - textareaRect.top + scrollTop,
-        };
-    },
-
-    toViewportCoordinates(localCoords, textareaRect, textarea) {
-        const { left, right, top, bottom } = localCoords;
-        return {
-            left: left - textarea.scrollLeft + textareaRect.left,
-            right: right - textarea.scrollLeft + textareaRect.left,
-            top: top - textarea.scrollTop + textareaRect.top,
-            bottom: bottom - textarea.scrollTop + textareaRect.top,
-        };
-    },
-
-    showCaretIndicator(textarea, caretIndex) {
-        if (!textarea) return;
-        const mirror = this.getCaretMirror(textarea);
-        if (!mirror) return;
-
-        const coords = this.getCaretCoordinates(textarea, mirror, caretIndex);
-        if (!coords) return;
-
-        const rect = textarea.getBoundingClientRect();
-        const local = this.toLocalCoordinates(coords, rect, textarea);
-        const viewport = this.toViewportCoordinates(local, rect, textarea);
-
-        const height = Math.max(viewport.bottom - viewport.top, parseFloat(window.getComputedStyle(textarea).lineHeight) || 18);
-
-        if (!this.dropIndicator) {
-            const indicator = document.createElement("div");
-            indicator.id = "tesauroCaretIndicator";
-            indicator.style.position = "absolute";
-            indicator.style.width = "2px";
-            indicator.style.background = "#E34850";
-            indicator.style.boxShadow = "0 0 6px rgba(227,72,80,0.6)";
-            indicator.style.pointerEvents = "none";
-            indicator.style.zIndex = "9999";
-            indicator.style.borderRadius = "2px";
-            document.body.appendChild(indicator);
-            this.dropIndicator = indicator;
-        }
-
-        this.dropIndicator.style.height = `${height}px`;
-        this.dropIndicator.style.left = `${viewport.left}px`;
-        this.dropIndicator.style.top = `${viewport.top}px`;
-        this.dropIndicator.style.display = "block";
-    },
-
-    hideCaretIndicator() {
-        if (this.dropIndicator) {
-            this.dropIndicator.style.display = "none";
-        }
-    },
-
     /* =======================================
        INSERCIÓN EN MARKDOWN
        ======================================= */
-    insertReferenceIntoMarkdown(refTesauro, positionOverride) {
+    insertReferenceIntoMarkdown(refTesauro) {
         if (!this.targetTextarea) return;
 
         const ta = this.targetTextarea;
-        if (Number.isInteger(positionOverride)) {
-            ta.setSelectionRange(positionOverride, positionOverride);
-        }
-
-        ta.focus({ preventScroll: true });
+        ta.focus();
 
         const start = ta.selectionStart;
         const end = ta.selectionEnd;
@@ -559,9 +369,6 @@ const DataTesauro = {
         const marker = ` {{personalized | reference: ${refTesauro}}} `;
 
         ta.setRangeText(marker, start, end, "end");
-        const newPos = start + marker.length;
-        ta.setSelectionRange(newPos, newPos);
-
         if (typeof window.recordUndoAfterChange === "function") {
             recordUndoAfterChange(ta);
         }
