@@ -33,6 +33,7 @@ const DataTesauro = {
     quickCreateRefInput: null,
     quickCreateTypeSelect: null,
     quickRefEdited: false,
+    dropIndicator: null,
 
     /* =======================================
        INICIALIZAR PARA ESTE EDITOR
@@ -304,6 +305,7 @@ const DataTesauro = {
                 const caret = this.getCaretIndexFromPoint(textarea, e.clientX, e.clientY);
                 if (caret != null) {
                     textarea.setSelectionRange(caret, caret);
+                    this.showCaretIndicator(textarea, caret);
                 }
             }
         });
@@ -332,7 +334,11 @@ const DataTesauro = {
             if (!ref) return;
 
             this.insertReferenceIntoMarkdown(ref);
+            this.hideCaretIndicator();
         });
+
+        textarea.addEventListener("dragleave", () => this.hideCaretIndicator());
+        textarea.addEventListener("dragend", () => this.hideCaretIndicator());
     },
 
     handleDragStart(e, pill) {
@@ -352,6 +358,9 @@ const DataTesauro = {
         const mirror = this.getCaretMirror(textarea);
         if (!mirror) return null;
 
+        mirror.scrollTop = textarea.scrollTop;
+        mirror.scrollLeft = textarea.scrollLeft;
+
         const rect = textarea.getBoundingClientRect();
         mirror.style.left = `${rect.left + window.scrollX}px`;
         mirror.style.top = `${rect.top + window.scrollY}px`;
@@ -363,26 +372,22 @@ const DataTesauro = {
         let high = len;
         let best = len;
 
-        const targetX = clientX;
-        const targetY = clientY;
+        const targetX = clientX - rect.left + textarea.scrollLeft;
+        const targetY = clientY - rect.top + textarea.scrollTop;
 
         while (low <= high) {
             const mid = Math.floor((low + high) / 2);
             const coords = this.getCaretCoordinates(textarea, mirror, mid);
             if (!coords) break;
 
-            const { left, right, top, bottom } = coords;
+            const { left, right, top, bottom } = this.toLocalCoordinates(coords, rect, textarea);
 
-            // Ajustar por scroll actual del textarea
-            const adjustedTop = top - textarea.scrollTop;
-            const adjustedBottom = bottom - textarea.scrollTop;
-
-            if (targetY < adjustedTop) {
+            if (targetY < top) {
                 best = mid;
                 high = mid - 1;
                 continue;
             }
-            if (targetY > adjustedBottom) {
+            if (targetY > bottom) {
                 low = mid + 1;
                 continue;
             }
@@ -470,6 +475,69 @@ const DataTesauro = {
             top: rect.top,
             bottom: rect.bottom,
         };
+    },
+
+    toLocalCoordinates(coords, textareaRect, textarea) {
+        const { left, right, top, bottom } = coords;
+        const scrollLeft = textarea.scrollLeft;
+        const scrollTop = textarea.scrollTop;
+
+        return {
+            left: left - textareaRect.left + scrollLeft,
+            right: right - textareaRect.left + scrollLeft,
+            top: top - textareaRect.top + scrollTop,
+            bottom: bottom - textareaRect.top + scrollTop,
+        };
+    },
+
+    toViewportCoordinates(localCoords, textareaRect, textarea) {
+        const { left, right, top, bottom } = localCoords;
+        return {
+            left: left - textarea.scrollLeft + textareaRect.left,
+            right: right - textarea.scrollLeft + textareaRect.left,
+            top: top - textarea.scrollTop + textareaRect.top,
+            bottom: bottom - textarea.scrollTop + textareaRect.top,
+        };
+    },
+
+    showCaretIndicator(textarea, caretIndex) {
+        if (!textarea) return;
+        const mirror = this.getCaretMirror(textarea);
+        if (!mirror) return;
+
+        const coords = this.getCaretCoordinates(textarea, mirror, caretIndex);
+        if (!coords) return;
+
+        const rect = textarea.getBoundingClientRect();
+        const local = this.toLocalCoordinates(coords, rect, textarea);
+        const viewport = this.toViewportCoordinates(local, rect, textarea);
+
+        const height = Math.max(viewport.bottom - viewport.top, parseFloat(window.getComputedStyle(textarea).lineHeight) || 18);
+
+        if (!this.dropIndicator) {
+            const indicator = document.createElement("div");
+            indicator.id = "tesauroCaretIndicator";
+            indicator.style.position = "absolute";
+            indicator.style.width = "2px";
+            indicator.style.background = "#E34850";
+            indicator.style.boxShadow = "0 0 6px rgba(227,72,80,0.6)";
+            indicator.style.pointerEvents = "none";
+            indicator.style.zIndex = "9999";
+            indicator.style.borderRadius = "2px";
+            document.body.appendChild(indicator);
+            this.dropIndicator = indicator;
+        }
+
+        this.dropIndicator.style.height = `${height}px`;
+        this.dropIndicator.style.left = `${viewport.left}px`;
+        this.dropIndicator.style.top = `${viewport.top}px`;
+        this.dropIndicator.style.display = "block";
+    },
+
+    hideCaretIndicator() {
+        if (this.dropIndicator) {
+            this.dropIndicator.style.display = "none";
+        }
     },
 
     /* =======================================
