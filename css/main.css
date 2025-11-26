@@ -141,11 +141,16 @@ body {
 
 /* TESAURO BLOCK */
 .tesauro-block {
-    background: rgba(34, 197, 94, 0.25);
-    border: 1px solid rgba(34, 197, 94, 0.4);
-    border-radius: 4px;
-    padding: 1px 3px;
-    color: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ecfdf3;
+    border: 1px solid rgba(34, 197, 94, 0.5);
+    border-radius: 6px;
+    padding: 4px 6px;
+    color: #065f46;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    font-weight: 600;
 }/* =============================
    TOOLBAR SUPERIOR
    ============================= */
@@ -623,6 +628,7 @@ body {
   padding: 1px 2px;
   background: rgba(237, 237, 9, 0.166);
   border: 1px solid rgba(217, 119, 6, 0.50);
+  color: #92400e;
 }
 
 /* Profundidad 1 (más claro) */
@@ -659,6 +665,7 @@ body {
   border: 1px solid rgba(220, 38, 38, 0.85);
   border-radius: 4px;
   padding: 1px 2px;
+  color: #7f1d1d;
 }
 
 .let-block {
@@ -666,12 +673,13 @@ body {
   border: 1px solid rgba(37, 99, 235, 0.65);
   border-radius: 4px;
   padding: 1px 3px;
-  color: transparent; /* seguimos usando el truco de texto transparente */
+  color: #1d4ed8;
 }
 .definition-block {
     background: rgba(120, 160, 255, 0.22);   /* azul muy pálido */
     border-radius: 3px;
     padding: 1px 2px;
+    color: #0f172a;
 }
 
 /* Fila seleccionada en el Gestor de Tesauros */
@@ -686,4 +694,105 @@ body {
 #tesauroManagerModal .tm-row:hover {
     background-color: #f8fafc;      /* gris/azul muy suave al pasar el ratón */
 
+}
+
+/* =============================
+   PREVIEW MODAL
+   ============================= */
+#previewModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 150000;
+  padding: 16px;
+}
+
+#previewModal .preview-card {
+  background: #ffffff;
+  border-radius: 12px;
+  width: min(900px, 95vw);
+  max-height: 90vh;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+#previewModal .preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+#previewModal .preview-title {
+  margin: 0;
+  font-size: 16px;
+  color: #111827;
+}
+
+#previewModal .preview-close {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+#previewModal .preview-close:hover {
+  color: #111827;
+}
+
+#previewModal .preview-body {
+  padding: 16px;
+  overflow: auto;
+  color: #111827;
+  line-height: 1.6;
+}
+
+#previewModal .preview-body h1,
+#previewModal .preview-body h2,
+#previewModal .preview-body h3,
+#previewModal .preview-body h4,
+#previewModal .preview-body h5,
+#previewModal .preview-body h6 {
+  margin: 0 0 10px 0;
+}
+
+#previewModal .preview-body p {
+  margin: 0 0 10px 0;
+}
+
+#previewModal .preview-body ul,
+#previewModal .preview-body ol {
+  padding-left: 22px;
+  margin: 0 0 12px 0;
+}
+
+#previewModal .preview-body blockquote {
+  border-left: 4px solid #d1d5db;
+  padding-left: 12px;
+  color: #4b5563;
+  margin: 0 0 12px 0;
+}
+
+#previewModal .preview-body code {
+  background: #f3f4f6;
+  border-radius: 4px;
+  padding: 2px 5px;
+}
+
+#previewModal .preview-body pre {
+  background: #0f172a;
+  color: #e5e7eb;
+  padding: 12px;
+  border-radius: 8px;
+  overflow: auto;
+  margin: 0 0 12px 0;
 }

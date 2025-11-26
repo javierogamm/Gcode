@@ -7,6 +7,7 @@ const markdownText = document.getElementById("markdownText");
 const btnNuevo = document.getElementById("btnNuevo");
 const btnPegarAuto = document.getElementById("btnPegarAuto");
 const btnCopiar = document.getElementById("btnCopiar");
+const btnVistaPrevia = document.getElementById("btnVistaPrevia");
 const btnDescargar = document.getElementById("btnDescargar");
 const btnExportProyecto = document.getElementById("btnExportProyecto");
 if (btnExportProyecto) {
@@ -143,6 +144,159 @@ UndoManager.lastValue = markdownText.value || "";
 // Helper global (lo usan también otros scripts si quieren)
 function pushUndoState() {
     UndoManager.push(markdownText.value);
+}
+
+/* =======================================
+   VISTA PREVIA
+======================================= */
+let previewModal = null;
+
+function ensurePreviewModal() {
+    if (previewModal) return previewModal;
+
+    const overlay = document.createElement("div");
+    overlay.id = "previewModal";
+    overlay.innerHTML = `
+        <div class="preview-card">
+            <div class="preview-header">
+                <h3 class="preview-title">Vista previa</h3>
+                <button type="button" class="preview-close" id="previewCloseBtn">✖</button>
+            </div>
+            <div class="preview-body" id="previewBody"></div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    previewModal = overlay;
+
+    const closeBtn = overlay.querySelector("#previewCloseBtn");
+    if (closeBtn) closeBtn.addEventListener("click", () => closePreview());
+
+    overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) closePreview();
+    });
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && previewModal && previewModal.style.display === "flex") {
+            closePreview();
+        }
+    });
+
+    return previewModal;
+}
+
+function inlineMarkdown(str) {
+    let tmp = str;
+    tmp = tmp.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    tmp = tmp.replace(/\*(.+?)\*/g, "<em>$1</em>");
+    tmp = tmp.replace(/`([^`]+)`/g, "<code>$1</code>");
+    return tmp;
+}
+
+function simpleMarkdownToHtml(md) {
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    }
+
+    const lines = md.split(/\n/);
+    let html = "";
+    let inCode = false;
+    let codeBuffer = [];
+    let inUl = false;
+    let inOl = false;
+
+    const closeLists = () => {
+        if (inUl) { html += "</ul>"; inUl = false; }
+        if (inOl) { html += "</ol>"; inOl = false; }
+    };
+
+    lines.forEach((line) => {
+        const trimmed = line.trim();
+
+        if (trimmed.startsWith("```")) {
+            if (inCode) {
+                html += `<pre><code>${escapeHtml(codeBuffer.join("\n"))}</code></pre>`;
+                codeBuffer = [];
+                inCode = false;
+            } else {
+                closeLists();
+                inCode = true;
+            }
+            return;
+        }
+
+        if (inCode) {
+            codeBuffer.push(line);
+            return;
+        }
+
+        const heading = line.match(/^(#{1,6})\s+(.*)$/);
+        if (heading) {
+            const level = heading[1].length;
+            const content = inlineMarkdown(escapeHtml(heading[2]));
+            closeLists();
+            html += `<h${level}>${content}</h${level}>`;
+            return;
+        }
+
+        const ol = line.match(/^\s*\d+\.\s+(.*)$/);
+        if (ol) {
+            if (!inOl) { closeLists(); html += "<ol>"; inOl = true; }
+            html += `<li>${inlineMarkdown(escapeHtml(ol[1]))}</li>`;
+            return;
+        }
+
+        const ul = line.match(/^\s*[-*+]\s+(.*)$/);
+        if (ul) {
+            if (!inUl) { closeLists(); html += "<ul>"; inUl = true; }
+            html += `<li>${inlineMarkdown(escapeHtml(ul[1]))}</li>`;
+            return;
+        }
+
+        if (trimmed.startsWith(">")) {
+            closeLists();
+            html += `<blockquote>${inlineMarkdown(escapeHtml(trimmed.replace(/^>\s?/, "")))}</blockquote>`;
+            return;
+        }
+
+        if (trimmed === "") {
+            closeLists();
+            html += "<br>";
+            return;
+        }
+
+        closeLists();
+        html += `<p>${inlineMarkdown(escapeHtml(line))}</p>`;
+    });
+
+    if (inCode) {
+        html += `<pre><code>${escapeHtml(codeBuffer.join("\n"))}</code></pre>`;
+    }
+    closeLists();
+
+    return html;
+}
+
+function openPreview() {
+    const modal = ensurePreviewModal();
+    const bodyEl = modal.querySelector("#previewBody");
+    if (!bodyEl) return;
+
+    const md = markdownText ? markdownText.value : "";
+    bodyEl.innerHTML = simpleMarkdownToHtml(md);
+    modal.style.display = "flex";
+}
+
+function closePreview() {
+    if (!previewModal) return;
+    previewModal.style.display = "none";
+}
+
+if (btnVistaPrevia) {
+    btnVistaPrevia.addEventListener("click", openPreview);
 }
 
 // Registrar un cambio desde cualquier textarea (por ejemplo, inserciones programáticas)
