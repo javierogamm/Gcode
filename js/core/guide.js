@@ -136,6 +136,7 @@
         runCleanup();
         state.active = false;
         state.elements.layer.classList.remove("active");
+        resetOverlay();
     }
 
     function buildSteps() {
@@ -290,6 +291,20 @@
         }
         state.cleanup = null;
         removeDragDemo();
+    }
+
+    function resetOverlay() {
+        const { highlight, tooltip } = state.elements;
+        if (highlight) {
+            highlight.style.left = "-9999px";
+            highlight.style.top = "-9999px";
+            highlight.style.width = "0px";
+            highlight.style.height = "0px";
+        }
+        if (tooltip) {
+            tooltip.style.left = "-9999px";
+            tooltip.style.top = "-9999px";
+        }
     }
 
     function ensureTesauroPanelOpen() {

@@ -752,6 +752,11 @@ body {
   border-radius: 12px;
   transition: all 0.2s ease;
   pointer-events: none;
+  opacity: 0;
+}
+
+.guide-layer.active .guide-highlight {
+  opacity: 1;
 }
 
 .guide-tooltip {
