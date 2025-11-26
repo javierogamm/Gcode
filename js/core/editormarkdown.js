@@ -135,32 +135,54 @@ if (btnImportDoc) {
 
 async function importDocumentToMarkdown(file) {
     const name = (file && file.name ? file.name : "").toLowerCase();
+    const arrayBuffer = await file.arrayBuffer();
+    const format = detectDocumentFormat(arrayBuffer, name);
 
-    if (name.endsWith(".pdf")) {
+    if (format === "pdf") {
         console.log("[IMPORT] Detectado PDF");
         await ensurePdfJs();
-        const text = await pdfFileToMarkdown(file);
+        const text = await pdfFileToMarkdown(arrayBuffer);
         return (text || "").trim();
     }
 
-    if (name.endsWith(".docx")) {
-        console.log("[IMPORT] Detectado DOCX");
+    if (format === "docx") {
+        console.log("[IMPORT] Detectado DOCX (ZIP)");
         await ensureJsZip();
-        const md = await docxToMarkdown(file);
+        const md = await docxToMarkdown(arrayBuffer);
         return (md || "").trim();
     }
 
-    if (name.endsWith(".doc")) {
-        console.log("[IMPORT] Detectado DOC (modo texto)");
-        const md = await docToMarkdown(file);
+    if (format === "doc") {
+        console.log("[IMPORT] Detectado DOC binario / texto");
+        const md = await docToMarkdown(arrayBuffer);
         return (md || "").trim();
     }
 
     throw new Error("Formato no soportado. Usa Word (.doc/.docx) o PDF.");
 }
 
-async function pdfFileToMarkdown(file) {
-    const arrayBuffer = await file.arrayBuffer();
+function detectDocumentFormat(arrayBuffer, fileName = "") {
+    const bytes = new Uint8Array(arrayBuffer.slice(0, 8));
+    const sig = bytes.slice(0, 4).join(",");
+
+    const isPdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46; // %PDF
+    const isZip = bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04; // PK..
+    const isOleDoc = bytes[0] === 0xd0 && bytes[1] === 0xcf && bytes[2] === 0x11 && bytes[3] === 0xe0; // D0 CF 11 E0
+
+    if (isPdf) return "pdf";
+    if (isZip) return "docx";
+    if (isOleDoc) return "doc";
+
+    if ((fileName || "").endsWith(".pdf")) return "pdf";
+    if ((fileName || "").endsWith(".docx")) return "docx";
+    if ((fileName || "").endsWith(".doc")) return "doc";
+
+    console.warn("[IMPORT] Formato no reconocido por firma", { signature: sig });
+    return "unknown";
+}
+
+async function pdfFileToMarkdown(fileOrBuffer) {
+    const arrayBuffer = fileOrBuffer instanceof ArrayBuffer ? fileOrBuffer : await fileOrBuffer.arrayBuffer();
     const readPdf = async (opts = {}) => {
         const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer, ...opts }).promise;
         const pages = [];
@@ -219,8 +241,8 @@ async function pdfFileToMarkdown(file) {
     }
 }
 
-async function docxToMarkdown(file) {
-    const arrayBuffer = await file.arrayBuffer();
+async function docxToMarkdown(fileOrBuffer) {
+    const arrayBuffer = fileOrBuffer instanceof ArrayBuffer ? fileOrBuffer : await fileOrBuffer.arrayBuffer();
     const zip = await window.JSZip.loadAsync(arrayBuffer);
     const documentFile = zip.file("word/document.xml");
 
@@ -261,9 +283,9 @@ async function docxToMarkdown(file) {
     const markdown = blocks.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 
     // Fallback a lectura "plana" si el DOCX vino corrupto o vacío
-    if (!markdown || /[\uFFFD]{2,}/.test(markdown)) {
+    if (!markdown || isUnreadable(markdown)) {
         console.warn("[IMPORT][DOCX] Resultado sospechoso, aplicando fallback plano");
-        const plain = await docToMarkdown(file).catch(() => "");
+        const plain = await docToMarkdown(arrayBuffer).catch(() => "");
         return plain || markdown;
     }
 
@@ -307,28 +329,72 @@ function extractDocxParagraphText(paragraph) {
     return result.replace(/[ ]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-async function docToMarkdown(file) {
-    const arrayBuffer = await file.arrayBuffer();
+async function docToMarkdown(fileOrBuffer) {
+    const arrayBuffer = fileOrBuffer instanceof ArrayBuffer ? fileOrBuffer : await fileOrBuffer.arrayBuffer();
 
-    let decoded = new TextDecoder("utf-8", { fatal: false }).decode(arrayBuffer);
-    // Si viene en UTF-16 con muchos nulls, reintentar en LE
-    if (/\u0000.{1}/.test(decoded.slice(0, 100))) {
-        decoded = new TextDecoder("utf-16le", { fatal: false }).decode(arrayBuffer);
+    const candidates = [];
+
+    const decodeWith = (encoding) => {
+        try {
+            return new TextDecoder(encoding, { fatal: false }).decode(arrayBuffer);
+        } catch (e) {
+            console.warn(`[IMPORT][DOC] TextDecoder no soporta ${encoding}`);
+            return "";
+        }
+    };
+
+    const pushCandidate = (label, text) => {
+        if (!text) return;
+        const cleaned = cleanText(text);
+        const score = textReadabilityScore(cleaned);
+        candidates.push({ label, cleaned, score });
+    };
+
+    pushCandidate("utf-8", decodeWith("utf-8"));
+    pushCandidate("utf-16le", decodeWith("utf-16le"));
+    pushCandidate("windows-1252", decodeWith("windows-1252"));
+
+    if (!candidates.length) {
+        throw new Error("No se pudo leer texto del archivo .doc");
     }
 
-    const cleaned = decoded
+    candidates.sort((a, b) => b.score - a.score);
+    const best = candidates[0];
+
+    console.log("[IMPORT][DOC] Selección de decodificación", candidates.map(c => ({ label: c.label, score: c.score.toFixed(2) })));
+
+    if (!best.cleaned || best.score < 0.2) {
+        throw new Error("No se pudo leer texto del archivo .doc");
+    }
+
+    return best.cleaned;
+}
+
+function cleanText(raw) {
+    return (raw || "")
         .replace(/[\x00-\x08\x0B-\x1F\x7F-\x9F]+/g, " ")
         .replace(/[ ]{3,}/g, "\n")
         .split(/\n+/)
         .map(line => line.trim())
         .filter(Boolean)
         .join("\n\n");
+}
 
-    if (!cleaned) {
-        throw new Error("No se pudo leer texto del archivo .doc");
-    }
+function textReadabilityScore(text) {
+    if (!text) return 0;
+    const withoutSpaces = text.replace(/\s+/g, "");
+    if (!withoutSpaces) return 0;
 
-    return cleaned;
+    const readableMatches = text.match(/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9¿?¡!.,;:\-\(\)\[\]"'\/]/g) || [];
+    const replacementMatches = (text.match(/[\uFFFD]/g) || []).length;
+
+    const baseScore = readableMatches.length / withoutSpaces.length;
+    return Math.max(0, baseScore - replacementMatches * 0.05);
+}
+
+function isUnreadable(text) {
+    const score = textReadabilityScore(text);
+    return !text || score < 0.45;
 }
 
 async function ensurePdfJs() {
