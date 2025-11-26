@@ -111,8 +111,12 @@ if (btnImportDoc) {
 
                 const markdown = await importDocumentToMarkdown(file);
                 markdownText.value = markdown;
-                pushUndoState();
-                updateHighlight();
+                if (typeof pushUndoState === "function") {
+                    pushUndoState();
+                }
+                if (typeof updateHighlight === "function") {
+                    updateHighlight();
+                }
             } catch (err) {
                 console.error(err);
                 alert("No se pudo importar el documento. " + (err && err.message ? err.message : ""));
@@ -131,13 +135,13 @@ async function importDocumentToMarkdown(file) {
     const name = (file && file.name ? file.name : "").toLowerCase();
 
     if (name.endsWith(".pdf")) {
-        if (!window.pdfjsLib) throw new Error("Falta PDF.js para leer el PDF.");
-        const text = await pdfFileToText(file);
+        await ensurePdfJs();
+        const text = await pdfFileToMarkdown(file);
         return (text || "").trim();
     }
 
     if (name.endsWith(".docx")) {
-        if (!window.JSZip) throw new Error("Falta JSZip para leer el Word.");
+        await ensureJsZip();
         const md = await docxToMarkdown(file);
         return (md || "").trim();
     }
@@ -145,27 +149,46 @@ async function importDocumentToMarkdown(file) {
     throw new Error("Formato no soportado. Usa Word (.docx) o PDF.");
 }
 
-async function pdfFileToText(file) {
+async function pdfFileToMarkdown(file) {
     const arrayBuffer = await file.arrayBuffer();
     if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.worker.min.js";
     }
 
     const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let text = "";
+    const pages = [];
 
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
         const content = await page.getTextContent();
         const items = content.items || [];
-        const pageText = items.map(item => item.str || "").join(" ").trim();
-        if (pageText) {
-            text += pageText;
-            if (pageNum < pdf.numPages) text += "\n\n";
+        let currentLine = "";
+        const lines = [];
+
+        items.forEach((item) => {
+            const chunk = (item.str || "").trim();
+            if (!chunk) return;
+
+            currentLine += chunk;
+            if (!item.hasEOL) {
+                currentLine += " ";
+                return;
+            }
+
+            lines.push(currentLine.trim());
+            currentLine = "";
+        });
+
+        if (currentLine.trim()) {
+            lines.push(currentLine.trim());
+        }
+
+        if (lines.length) {
+            pages.push(lines.join("\n"));
         }
     }
 
-    return text;
+    return pages.join("\n\n");
 }
 
 async function docxToMarkdown(file) {
@@ -237,6 +260,51 @@ function extractDocxParagraphText(paragraph) {
     });
 
     return result.trim();
+}
+
+async function ensurePdfJs() {
+    if (window.pdfjsLib) return;
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.min.js");
+    if (!window.pdfjsLib) {
+        throw new Error("No se pudo cargar PDF.js para leer el PDF.");
+    }
+    if (window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.worker.min.js";
+    }
+}
+
+async function ensureJsZip() {
+    if (window.JSZip) return;
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+    if (!window.JSZip) {
+        throw new Error("No se pudo cargar JSZip para leer el archivo de Word.");
+    }
+}
+
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[src="${src}"]`);
+        if (existing) {
+            if (existing.dataset.loaded === "1" || existing.readyState === "complete" || existing.readyState === "loaded") {
+                resolve();
+                return;
+            }
+
+            existing.addEventListener("load", () => resolve());
+            existing.addEventListener("error", () => reject(new Error("Error al cargar script externo.")));
+            return;
+        }
+
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        script.onload = () => {
+            script.dataset.loaded = "1";
+            resolve();
+        };
+        script.onerror = () => reject(new Error("Error al cargar script externo."));
+        document.head.appendChild(script);
+    });
 }
 
 /* =======================================
