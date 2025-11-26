@@ -142,11 +142,12 @@ body {
 /* TESAURO BLOCK */
 .tesauro-block {
     background: rgba(34, 197, 94, 0.25);
-    border: 1px solid rgba(34, 197, 94, 0.4);
+    box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.4);
     border-radius: 4px;
-    padding: 1px 3px;
+    padding: 0;
     color: transparent;
-}/* =============================
+}
+/* =============================
    TOOLBAR SUPERIOR
    ============================= */
 
@@ -620,68 +621,62 @@ body {
   background: #f9fafb !important;
   border-top: 1px solid #e5e7eb !important;
 }
-/* Bloque de sección (highlight amarillo) */
-.section-block {
-  background: rgba(250, 204, 21, 0.166); /* amarillo translúcido */
-  border: 1px solid rgba(217, 119, 6, 0.6);
-  border-radius: 4px;
-  padding: 1px 2px;
-}
 /* Bloque de sección (highlight amarillo base) */
 .section-block {
   border-radius: 4px;
-  padding: 1px 2px;
+  padding: 0;
   background: rgba(237, 237, 9, 0.166);
-  border: 1px solid rgba(217, 119, 6, 0.50);
+  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.50);
 }
 
 /* Profundidad 1 (más claro) */
 .section-block.section-depth-1 {
   background: rgba(237, 207, 9, 0.166);
-  border-color: rgba(217, 119, 6, 0.30);
+  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.30);
 }
 
 /* Profundidad 2 */
 .section-block.section-depth-2 {
   background: rgba(250, 116, 21, 0.166);
-  border-color: rgba(217, 119, 6, 0.40);
+  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.40);
 }
 
 /* Profundidad 3 */
 .section-block.section-depth-3 {
   background: rgba(197, 127, 14, 0.166);
-  border-color: rgba(180, 83, 9, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(180, 83, 9, 0.55);
 }
 
 /* Profundidad 4 */
 .section-block.section-depth-4 {
   background: rgba(250, 170, 21, 0.166);
-  border-color: rgba(146, 64, 14, 0.70);
+  box-shadow: inset 0 0 0 1px rgba(146, 64, 14, 0.70);
 }
 
 /* Profundidad 5 (más oscuro) */
 .section-block.section-depth-5 {
   background: rgba(222, 188, 18, 0.166);
-  border-color: rgba(120, 53, 15, 0.80);
+  box-shadow: inset 0 0 0 1px rgba(120, 53, 15, 0.80);
 }
 .section-error-block {
   background: rgba(230, 7, 7, 0.575); /* rojito suave */
-  border: 1px solid rgba(220, 38, 38, 0.85);
+  box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.85);
   border-radius: 4px;
-  padding: 1px 2px;
+  padding: 0;
 }
 
 .let-block {
   background: rgba(37, 99, 235, 0.30);    /* azul tipo cobalt */
-  border: 1px solid rgba(37, 99, 235, 0.65);
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.65);
   border-radius: 4px;
-  padding: 1px 3px;
+  padding: 0;
   color: transparent; /* seguimos usando el truco de texto transparente */
 }
 .definition-block {
     background: rgba(120, 160, 255, 0.22);   /* azul muy pálido */
     border-radius: 3px;
-    padding: 1px 2px;
+    padding: 0;
+    box-shadow: inset 0 0 0 1px rgba(120, 160, 255, 0.40);
 }
 
 /* Fila seleccionada en el Gestor de Tesauros */
