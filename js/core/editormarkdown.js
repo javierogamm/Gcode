@@ -226,6 +226,7 @@ async function pdfFileToMarkdown(fileOrBuffer) {
             }
         }
 
+        console.log("[IMPORT][PDF] Páginas procesadas", { paginas: pages.length });
         return pages.join("\n\n");
     };
 
@@ -281,12 +282,18 @@ async function docxToMarkdown(fileOrBuffer) {
     });
 
     const markdown = blocks.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    const score = textReadabilityScore(markdown);
 
     // Fallback a lectura "plana" si el DOCX vino corrupto o vacío
-    if (!markdown || isUnreadable(markdown)) {
-        console.warn("[IMPORT][DOCX] Resultado sospechoso, aplicando fallback plano");
-        const plain = await docToMarkdown(arrayBuffer).catch(() => "");
-        return plain || markdown;
+    if (!markdown || score < 0.3) {
+        console.warn("[IMPORT][DOCX] Resultado sospechoso, aplicando fallback plano", { score: score.toFixed(2) });
+        const plain = docxPlainTextFallback(xml);
+        if (plain) return plain;
+
+        const binPlain = extractPrintableFromBinary(arrayBuffer);
+        if (binPlain) return binPlain;
+
+        return markdown;
     }
 
     return markdown;
@@ -363,11 +370,18 @@ async function docToMarkdown(fileOrBuffer) {
 
     console.log("[IMPORT][DOC] Selección de decodificación", candidates.map(c => ({ label: c.label, score: c.score.toFixed(2) })));
 
-    if (!best.cleaned || best.score < 0.2) {
-        throw new Error("No se pudo leer texto del archivo .doc");
+    const filtered = filterReadableLines(best.cleaned, { minScore: 0.3, minLength: 4 });
+    if (filtered) {
+        return filtered;
     }
 
-    return best.cleaned;
+    console.warn("[IMPORT][DOC] Texto poco legible tras decodificación, intentando extracción binaria");
+    const binaryPlain = extractPrintableFromBinary(arrayBuffer);
+    if (binaryPlain) {
+        return binaryPlain;
+    }
+
+    throw new Error("No se pudo leer texto del archivo .doc");
 }
 
 function cleanText(raw) {
@@ -395,6 +409,84 @@ function textReadabilityScore(text) {
 function isUnreadable(text) {
     const score = textReadabilityScore(text);
     return !text || score < 0.45;
+}
+
+function docxPlainTextFallback(xmlDoc) {
+    try {
+        const paragraphs = [...xmlDoc.getElementsByTagName("w:p")];
+        const lines = paragraphs
+            .map(p => {
+                const textNodes = [...p.getElementsByTagName("w:t")];
+                const raw = textNodes.map(t => t.textContent || "").join("").trim();
+                return normalizeSpacedLetters(raw);
+            })
+            .map(line => line.trim())
+            .filter(Boolean);
+
+        const joined = lines.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
+        const filtered = filterReadableLines(joined, { minScore: 0.3, minLength: 3 });
+        return filtered || joined;
+    } catch (err) {
+        console.warn("[IMPORT][DOCX] Fallback plano falló", err);
+        return "";
+    }
+}
+
+function normalizeSpacedLetters(line) {
+    if (/^(?:[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9] ){4,}[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]$/.test(line)) {
+        return line.replace(/ /g, "");
+    }
+    return line;
+}
+
+function filterReadableLines(text, opts = {}) {
+    const minScore = opts.minScore ?? 0.35;
+    const minLength = opts.minLength ?? 5;
+    const lines = (text || "")
+        .split(/\n+/)
+        .map(l => normalizeSpacedLetters(l.trim()))
+        .filter(Boolean);
+
+    const readable = lines.filter(line => line.length >= minLength && textReadabilityScore(line) >= minScore);
+    return readable.length ? readable.join("\n\n") : "";
+}
+
+function extractPrintableFromBinary(arrayBuffer) {
+    const bytes = new Uint8Array(arrayBuffer);
+    const lines = [];
+    let current = [];
+
+    const flush = () => {
+        if (current.length >= 8) {
+            const line = current.join("");
+            const cleaned = line.replace(/[ ]{3,}/g, " ").trim();
+            if (textReadabilityScore(cleaned) >= 0.25) {
+                lines.push(cleaned);
+            }
+        }
+        current = [];
+    };
+
+    for (let i = 0; i < bytes.length; i++) {
+        const b = bytes[i];
+        const isLineBreak = b === 0x0a || b === 0x0d;
+        const isPrintable = (b >= 0x20 && b <= 0x7e) || (b >= 0xa0 && b <= 0xff);
+
+        if (isLineBreak) {
+            flush();
+            continue;
+        }
+
+        if (isPrintable) {
+            current.push(String.fromCharCode(b));
+        } else if (current.length) {
+            flush();
+        }
+    }
+
+    flush();
+    const uniqueLines = [...new Set(lines)];
+    return uniqueLines.length ? uniqueLines.join("\n\n") : "";
 }
 
 async function ensurePdfJs() {
