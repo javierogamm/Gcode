@@ -333,7 +333,7 @@ const DataTesauro = {
             const ref = payload.refCampo || payload.ref || payload.refTesauro;
             if (!ref) return;
 
-            this.insertReferenceIntoMarkdown(ref);
+            this.insertReferenceIntoMarkdown(ref, caret != null ? caret : undefined);
             this.hideCaretIndicator();
         });
 
@@ -543,11 +543,15 @@ const DataTesauro = {
     /* =======================================
        INSERCIÓN EN MARKDOWN
        ======================================= */
-    insertReferenceIntoMarkdown(refTesauro) {
+    insertReferenceIntoMarkdown(refTesauro, positionOverride) {
         if (!this.targetTextarea) return;
 
         const ta = this.targetTextarea;
-        ta.focus();
+        if (Number.isInteger(positionOverride)) {
+            ta.setSelectionRange(positionOverride, positionOverride);
+        }
+
+        ta.focus({ preventScroll: true });
 
         const start = ta.selectionStart;
         const end = ta.selectionEnd;
@@ -555,6 +559,9 @@ const DataTesauro = {
         const marker = ` {{personalized | reference: ${refTesauro}}} `;
 
         ta.setRangeText(marker, start, end, "end");
+        const newPos = start + marker.length;
+        ta.setSelectionRange(newPos, newPos);
+
         if (typeof window.recordUndoAfterChange === "function") {
             recordUndoAfterChange(ta);
         }
