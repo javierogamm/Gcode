@@ -561,6 +561,10 @@ if (markdownText.parentElement) {
 
         tbox.innerHTML = `
             <label style="display:flex;align-items:center;gap:3px;cursor:pointer;">
+                <input id="toggleAllHighlight" type="checkbox" checked style="margin:0;" />
+                <span>Todo</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:3px;cursor:pointer;">
                 <input id="toggleSections" type="checkbox" checked style="margin:0;" />
                 <span>Sections</span>
             </label>
@@ -576,28 +580,57 @@ if (markdownText.parentElement) {
 
         parent.appendChild(tbox);
 
+        const chkAll = tbox.querySelector("#toggleAllHighlight");
         const chkSec = tbox.querySelector("#toggleSections");
         const chkTes = tbox.querySelector("#toggleTesauros");
         const chkLet = tbox.querySelector("#toggleLet");
 
+        const refreshAllState = () => {
+            if (!chkAll) return;
+            const allOn = highlightSections && highlightTesauros && highlightLet;
+            const anyOn = highlightSections || highlightTesauros || highlightLet;
+            chkAll.checked = allOn;
+            chkAll.indeterminate = !allOn && anyOn;
+        };
+
+        if (chkAll) {
+            chkAll.addEventListener("change", () => {
+                const enabled = chkAll.checked;
+                highlightSections = enabled;
+                highlightTesauros = enabled;
+                highlightLet = enabled;
+
+                if (chkSec) chkSec.checked = enabled;
+                if (chkTes) chkTes.checked = enabled;
+                if (chkLet) chkLet.checked = enabled;
+
+                chkAll.indeterminate = false;
+                updateHighlight();
+            });
+        }
         if (chkSec) {
             chkSec.addEventListener("change", () => {
                 highlightSections = chkSec.checked;
+                refreshAllState();
                 updateHighlight();
             });
         }
         if (chkTes) {
             chkTes.addEventListener("change", () => {
                 highlightTesauros = chkTes.checked;
+                refreshAllState();
                 updateHighlight();
             });
         }
         if (chkLet) {
             chkLet.addEventListener("change", () => {
                 highlightLet = chkLet.checked;
+                refreshAllState();
                 updateHighlight();
             });
         }
+
+        refreshAllState();
     }
 }
 
