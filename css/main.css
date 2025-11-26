@@ -117,9 +117,14 @@ body {
     word-wrap: break-word !important;
     line-height: 1.4;
     position: relative;
-    color: #111;
+    color: transparent;
+    text-shadow: none;
     caret-color: #111;
     z-index: 2;
+}
+
+#markdownText::selection {
+    background: rgba(59, 130, 246, 0.35);
 }
 
 /* OVERLAY */
@@ -132,11 +137,38 @@ body {
     white-space: pre-wrap;
     word-wrap: break-word;
     line-height: 1.4;
-    color: transparent;
+    color: #111827;
     background: transparent !important;
     pointer-events: none;
     overflow: hidden;     /* NO scroll propio */
     z-index: 1;
+}
+
+/* Renderizado visual básico del Markdown */
+.md-heading {
+  display: block;
+  font-weight: 800;
+  margin: 6px 0 2px 0;
+}
+
+.md-h1 {
+  font-size: 20px;
+}
+
+.md-h2 {
+  font-size: 17px;
+}
+
+.md-h3 {
+  font-size: 15px;
+}
+
+#mdHighlighter strong {
+  font-weight: 800;
+}
+
+#mdHighlighter em {
+  font-style: italic;
 }
 
 /* TESAURO BLOCK */

@@ -250,6 +250,15 @@ function applyMarkdownFormat(type) {
             }
             break;
 
+        // --- H3 ---
+        case "h3":
+            if (selected.includes("### ")) {
+                formatted = selected.replace(/### /g, "");
+            } else {
+                formatted = `### ${selected}`;
+            }
+            break;
+
         // --- UL ---
         case "ul":
             if (/- /.test(selected)) {
@@ -657,6 +666,33 @@ markdownText.addEventListener("input", () => {
     updateHighlight();
 });
 
+function applyInlineMarkdownStyles(text) {
+    if (!text) return "";
+
+    let result = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+    // cursiva: evitar chocar con **bold**
+    result = result.replace(/(^|[\s\W])\*(?!\*)([^*]+?)\*(?!\*)(?!\*)/g, "$1<em>$2</em>");
+
+    return result;
+}
+
+function renderBasicMarkdown(text) {
+    const lines = String(text || "").split(/\n/);
+
+    return lines.map(line => {
+        const headingMatch = line.match(/^\s*(#{1,3})\s+(.*)$/);
+
+        if (headingMatch) {
+            const level = Math.min(headingMatch[1].length, 3);
+            const content = applyInlineMarkdownStyles(headingMatch[2]);
+            return `<div class="md-heading md-h${level}">${content}</div>`;
+        }
+
+        return applyInlineMarkdownStyles(line);
+    }).join("\n");
+}
+
 function updateHighlight() {
     const txt = markdownText.value;
 
@@ -868,6 +904,9 @@ function updateHighlight() {
         // Escapamos HTML
         let safe = escapeHtml(seg.text);
 
+        // Renderizado visual básico de Markdown (H1-3, negrita, cursiva)
+        safe = renderBasicMarkdown(safe);
+
         // TESAUROS (toggle)
         if (typeof highlightTesauros === "undefined" || highlightTesauros) {
             safe = safe.replace(
@@ -935,7 +974,8 @@ function updateHighlight() {
     hl.innerHTML = html;
 
     // 🔧 Ajustar altura del overlay al contenido TOTAL del textarea
-    const contentHeight = markdownText.scrollHeight;
+    const overlayContentHeight = hl.scrollHeight;
+    const contentHeight = Math.max(markdownText.scrollHeight, overlayContentHeight);
     hl.style.top = "0px";
     hl.style.left = "0px";
     hl.style.right = "0px";

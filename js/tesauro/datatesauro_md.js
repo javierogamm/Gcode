@@ -609,6 +609,10 @@ const DataTesauro = {
 
         ta.setRangeText(newBlock, start, blockEnd, "end");
 
+        if (typeof window.recordUndoAfterChange === "function") {
+            recordUndoAfterChange(ta);
+        }
+
         if (typeof window.updateHighlight === "function") {
             updateHighlight();
         }
