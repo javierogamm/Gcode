@@ -29,6 +29,7 @@ const DefinitionManager = {
         const toolbar =
             document.getElementById("toolbar") ||
             document.querySelector(".toolbar");
+        const floatingRow = (window.ensureFloatingActionRow && ensureFloatingActionRow()) || null;
 
         if (!ta || !toolbar) return;
 
@@ -41,12 +42,10 @@ const DefinitionManager = {
             btn.id = "btnDefinition";
             btn.type = "button";
             btn.textContent = "Definition";
-            btn.style.fontWeight = "600";
+            btn.className = "floating-action-btn";
 
-            // Lo situamos después del botón LET si existe
-            const letBtn = toolbar.querySelector("#btnLet");
-            if (letBtn && letBtn.nextSibling) {
-                toolbar.insertBefore(btn, letBtn.nextSibling);
+            if (floatingRow) {
+                floatingRow.appendChild(btn);
             } else {
                 toolbar.appendChild(btn);
             }

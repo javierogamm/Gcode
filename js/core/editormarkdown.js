@@ -9,6 +9,24 @@ const btnPegarAuto = document.getElementById("btnPegarAuto");
 const btnCopiar = document.getElementById("btnCopiar");
 const btnDescargar = document.getElementById("btnDescargar");
 const btnExportProyecto = document.getElementById("btnExportProyecto");
+const btnImportProyecto = document.getElementById("btnImportProyecto");
+
+// Barra de acciones flotantes (Sections, LET, Definition, Tesauro)
+function ensureFloatingActionRow() {
+    const toolbar = document.getElementById("toolbar") || document.querySelector(".toolbar");
+    if (!toolbar || !toolbar.parentElement) return null;
+
+    let row = document.getElementById("floatingActionRow");
+    if (!row) {
+        row = document.createElement("div");
+        row.id = "floatingActionRow";
+        toolbar.parentElement.insertBefore(row, toolbar);
+    }
+    return row;
+}
+
+// Exponer helper para otros módulos
+window.ensureFloatingActionRow = ensureFloatingActionRow;
 if (btnExportProyecto) {
     btnExportProyecto.addEventListener("click", () => {
         const textarea = document.getElementById("markdownText");
@@ -37,7 +55,6 @@ if (btnExportProyecto) {
         URL.revokeObjectURL(url);
     });
 }
-const btnImportProyecto = document.getElementById("btnImportProyecto");
 if (btnImportProyecto) {
     btnImportProyecto.addEventListener("click", () => {
         const input = document.createElement("input");

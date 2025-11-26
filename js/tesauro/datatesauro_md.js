@@ -27,6 +27,13 @@ const DataTesauro = {
     // Estado de colapsado por tipo
     collapsed: {},
 
+    // Modal rápido para creación
+    quickCreateModal: null,
+    quickCreateNameInput: null,
+    quickCreateRefInput: null,
+    quickCreateTypeSelect: null,
+    quickRefEdited: false,
+
     /* =======================================
        INICIALIZAR PARA ESTE EDITOR
        ======================================= */
@@ -35,14 +42,38 @@ const DataTesauro = {
 
         this.targetTextarea = textarea;
 
+        const floatingRow = (window.ensureFloatingActionRow && ensureFloatingActionRow()) || null;
+
+        // Botón rápido para crear + insertar tesauro
+        if (!document.getElementById("btnTesauroCrear")) {
+            const createBtn = document.createElement("button");
+            createBtn.id = "btnTesauroCrear";
+            createBtn.className = "floating-action-btn floating-tesauro-btn";
+            createBtn.textContent = "➕ Crear Tesauro";
+
+            if (floatingRow) {
+                floatingRow.appendChild(createBtn);
+            } else {
+                document.body.appendChild(createBtn);
+            }
+
+            createBtn.addEventListener("click", () => {
+                this.openQuickCreateModal();
+            });
+        }
+
         // Crear botón flotante si no existe
         if (!document.getElementById("btnTesauro")) {
             this.btn = document.createElement("button");
             this.btn.id = "btnTesauro";
-            this.btn.className = "floating-tesauro-btn";
+            this.btn.className = "floating-action-btn floating-tesauro-btn";
             this.btn.textContent = "📚 Insertar Tesauro";
             // === TESAURO: botón flotante ===
-            document.body.appendChild(this.btn);
+            if (floatingRow) {
+                floatingRow.appendChild(this.btn);
+            } else {
+                document.body.appendChild(this.btn);
+            }
 
             this.btn.addEventListener("click", () => {
                 this.togglePanel();
@@ -261,26 +292,25 @@ const DataTesauro = {
        DRAG & DROP HACIA EL TEXTAREA
        ======================================= */
     setupMarkdownDrop(textarea) {
+        // --- Mantener visualmente la selección durante el drag/drop ---
+        let savedSelStart = 0;
+        let savedSelEnd = 0;
 
-// --- Mantener visualmente la selección durante el drag/drop ---
-let savedSelStart = 0;
-let savedSelEnd = 0;
+        // Guardar la selección cuando comienza el drag desde un tesauro
+        document.addEventListener("dragstart", () => {
+            savedSelStart = textarea.selectionStart;
+            savedSelEnd = textarea.selectionEnd;
+        });
 
-// Guardar la selección cuando comienza el drag desde un tesauro
-document.addEventListener("dragstart", () => {
-    savedSelStart = textarea.selectionStart;
-    savedSelEnd = textarea.selectionEnd;
-});
+        // Restaurar visual al entrar en el área del textarea
+        textarea.addEventListener("dragenter", () => {
+            textarea.setSelectionRange(savedSelStart, savedSelEnd);
+        });
 
-// Restaurar visual al entrar en el área del textarea
-textarea.addEventListener("dragenter", () => {
-    textarea.setSelectionRange(savedSelStart, savedSelEnd);
-});
-
-// Restaurar visual mientras el usuario mueve el tesauro por encima
-textarea.addEventListener("dragover", () => {
-    textarea.setSelectionRange(savedSelStart, savedSelEnd);
-});
+        // Restaurar visual mientras el usuario mueve el tesauro por encima
+        textarea.addEventListener("dragover", () => {
+            textarea.setSelectionRange(savedSelStart, savedSelEnd);
+        });
 
         // Dragover: permitir soltar si viene un tesauro
         textarea.addEventListener("dragover", (e) => {
@@ -345,6 +375,192 @@ textarea.addEventListener("dragover", () => {
 
         // update highlight (ya se dispara por input, pero por si acaso)
         if (window.updateHighlight) updateHighlight();
+    },
+
+    /* =======================================
+       CREACIÓN RÁPIDA DE TESAUROS
+       ======================================= */
+    openQuickCreateModal() {
+        if (!this.quickCreateModal) {
+            this.buildQuickCreateModal();
+        }
+
+        if (!this.quickCreateModal) return;
+
+        this.quickRefEdited = false;
+        if (this.quickCreateNameInput) this.quickCreateNameInput.value = "";
+        if (this.quickCreateRefInput) this.quickCreateRefInput.value = "";
+        if (this.quickCreateTypeSelect) this.quickCreateTypeSelect.value = "texto";
+
+        this.updateQuickRefSuggestion();
+
+        this.quickCreateModal.style.display = "flex";
+        if (this.quickCreateNameInput) this.quickCreateNameInput.focus();
+    },
+
+    buildQuickCreateModal() {
+        const overlay = document.createElement("div");
+        overlay.id = "tesauroQuickCreate";
+        overlay.style.position = "fixed";
+        overlay.style.inset = "0";
+        overlay.style.background = "rgba(0,0,0,0.45)";
+        overlay.style.display = "none";
+        overlay.style.alignItems = "center";
+        overlay.style.justifyContent = "center";
+        overlay.style.zIndex = "100000";
+
+        overlay.innerHTML = `
+            <div style="
+                background: white;
+                padding: 18px 20px;
+                border-radius: 10px;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+                width: 420px;
+                max-width: 92%;
+                font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+                font-size: 14px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            ">
+                <h2 style="margin:0; font-size:18px; color:#111827;">Crear tesauro e insertar</h2>
+
+                <label style="display:flex; flex-direction:column; gap:4px;">
+                    <span style="font-size:12px; color:#6b7280;">Nombre visible</span>
+                    <input id="tesauroQuickName" type="text" placeholder="p.ej. Número de expediente" style="
+                        width:100%; padding:7px 8px; border-radius:8px; border:1px solid #cbd5e1; font-size:13px;">
+                </label>
+
+                <label style="display:flex; flex-direction:column; gap:4px;">
+                    <span style="font-size:12px; color:#6b7280;">Referencia (se sugiere automáticamente)</span>
+                    <input id="tesauroQuickRef" type="text" placeholder="Referencia sugerida" style="
+                        width:100%; padding:7px 8px; border-radius:8px; border:1px solid #cbd5e1; font-size:13px;">
+                    <small style="font-size:11px; color:#9ca3af;">Se genera con las normas de DataTesauro mientras escribes el nombre.</small>
+                </label>
+
+                <label style="display:flex; flex-direction:column; gap:4px;">
+                    <span style="font-size:12px; color:#6b7280;">Tipo</span>
+                    <select id="tesauroQuickType" style="
+                        width:100%; padding:7px 8px; border-radius:8px; border:1px solid #cbd5e1; font-size:13px;">
+                        <option value="texto">Texto</option>
+                        <option value="selector">Selector</option>
+                        <option value="si_no">Sí / No</option>
+                        <option value="numero">Número</option>
+                        <option value="moneda">Moneda</option>
+                        <option value="fecha">Fecha</option>
+                    </select>
+                </label>
+
+                <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:4px;">
+                    <button id="tesauroQuickCancel" type="button" style="
+                        padding:7px 12px; border-radius:8px; border:1px solid #e5e7eb; background:#f3f4f6; cursor:pointer;">
+                        Cancelar
+                    </button>
+                    <button id="tesauroQuickCreateBtn" type="button" style="
+                        padding:7px 14px; border-radius:8px; border:none; background:#E34850; color:white; cursor:pointer; font-weight:700;">
+                        Crear e insertar
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+        this.quickCreateModal = overlay;
+        this.quickCreateNameInput = overlay.querySelector("#tesauroQuickName");
+        this.quickCreateRefInput = overlay.querySelector("#tesauroQuickRef");
+        this.quickCreateTypeSelect = overlay.querySelector("#tesauroQuickType");
+
+        const btnCancel = overlay.querySelector("#tesauroQuickCancel");
+        const btnCreate = overlay.querySelector("#tesauroQuickCreateBtn");
+
+        if (this.quickCreateNameInput) {
+            this.quickCreateNameInput.addEventListener("input", () => {
+                this.quickRefEdited = false;
+                this.updateQuickRefSuggestion();
+            });
+        }
+
+        if (this.quickCreateRefInput) {
+            this.quickCreateRefInput.addEventListener("input", () => {
+                this.quickRefEdited = true;
+            });
+        }
+
+        if (btnCancel) {
+            btnCancel.addEventListener("click", () => this.closeQuickCreateModal());
+        }
+
+        if (btnCreate) {
+            btnCreate.addEventListener("click", () => this.handleQuickCreate());
+        }
+
+        document.addEventListener("keydown", (e) => {
+            if (!this.quickCreateModal || this.quickCreateModal.style.display !== "flex") return;
+            if (e.key === "Escape") this.closeQuickCreateModal();
+        });
+    },
+
+    updateQuickRefSuggestion() {
+        if (!this.quickCreateNameInput || !this.quickCreateRefInput) return;
+        if (this.quickRefEdited && this.quickCreateRefInput.value.trim()) return;
+
+        const suggestion = this.generarReferenciaDesdeNombre(this.quickCreateNameInput.value);
+        this.quickCreateRefInput.value = suggestion;
+    },
+
+    closeQuickCreateModal() {
+        if (this.quickCreateModal) {
+            this.quickCreateModal.style.display = "none";
+        }
+    },
+
+    handleQuickCreate() {
+        if (!this.quickCreateNameInput || !this.quickCreateRefInput || !this.quickCreateTypeSelect) return;
+
+        const nombre = (this.quickCreateNameInput.value || "").trim();
+        let ref = (this.quickCreateRefInput.value || "").trim();
+        const tipo = this.quickCreateTypeSelect.value || "texto";
+
+        if (!nombre) {
+            alert("Debes indicar un nombre para el tesauro.");
+            return;
+        }
+
+        if (!ref) {
+            ref = this.generarReferenciaDesdeNombre(nombre);
+            this.quickCreateRefInput.value = ref;
+        }
+
+        if (!ref) {
+            alert("No se pudo generar una referencia válida.");
+            return;
+        }
+
+        const exists = (this.campos || []).some(c => (c.ref || "").toLowerCase() === ref.toLowerCase());
+        if (exists) {
+            alert("Ya existe un tesauro con esa referencia.");
+            return;
+        }
+
+        const nuevo = {
+            id: this.generateId(),
+            nombre,
+            ref,
+            tipo,
+            momento: "Solicitud",
+            agrupacion: "General"
+        };
+
+        if (tipo === "selector") {
+            nuevo.opciones = [];
+        }
+
+        this.campos = this.campos || [];
+        this.campos.push(nuevo);
+        this.renderList();
+
+        this.insertReferenceIntoMarkdown(ref);
+        this.closeQuickCreateModal();
     },
     /* =======================================
        Marcar tesauro seleccionado como no editable
