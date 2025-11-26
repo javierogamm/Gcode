@@ -292,33 +292,19 @@ const DataTesauro = {
        DRAG & DROP HACIA EL TEXTAREA
        ======================================= */
     setupMarkdownDrop(textarea) {
+        if (!textarea) return;
 
-// --- Mantener visualmente la selección durante el drag/drop ---
-let savedSelStart = 0;
-let savedSelEnd = 0;
-
-// Guardar la selección cuando comienza el drag desde un tesauro
-document.addEventListener("dragstart", () => {
-    savedSelStart = textarea.selectionStart;
-    savedSelEnd = textarea.selectionEnd;
-});
-
-// Restaurar visual al entrar en el área del textarea
-textarea.addEventListener("dragenter", () => {
-    textarea.setSelectionRange(savedSelStart, savedSelEnd);
-});
-
-// Restaurar visual mientras el usuario mueve el tesauro por encima
-textarea.addEventListener("dragover", () => {
-    textarea.setSelectionRange(savedSelStart, savedSelEnd);
-});
-
-        // Dragover: permitir soltar si viene un tesauro
+        // Dragover: permitir soltar si viene un tesauro y marcar la posición de inserción
         textarea.addEventListener("dragover", (e) => {
             const types = Array.from(e.dataTransfer.types || []);
             if (types.includes("application/x-tesauro")) {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "copy";
+
+                const caret = this.getCaretIndexFromPoint(textarea, e.clientX, e.clientY);
+                if (caret != null) {
+                    textarea.setSelectionRange(caret, caret);
+                }
             }
         });
 
@@ -337,6 +323,11 @@ textarea.addEventListener("dragover", () => {
                 return;
             }
 
+            const caret = this.getCaretIndexFromPoint(textarea, e.clientX, e.clientY);
+            if (caret != null) {
+                textarea.setSelectionRange(caret, caret);
+            }
+
             const ref = payload.refCampo || payload.ref || payload.refTesauro;
             if (!ref) return;
 
@@ -353,6 +344,49 @@ textarea.addEventListener("dragover", () => {
 
         e.dataTransfer.setData("application/x-tesauro", JSON.stringify(payload));
         e.dataTransfer.effectAllowed = "copy";
+    },
+
+    getCaretIndexFromPoint(textarea, clientX, clientY) {
+        if (!textarea) return null;
+
+        const rect = textarea.getBoundingClientRect();
+        const style = window.getComputedStyle(textarea);
+
+        const paddingLeft = parseFloat(style.paddingLeft) || 0;
+        const paddingTop = parseFloat(style.paddingTop) || 0;
+        const lineHeight = parseFloat(style.lineHeight) || (parseFloat(style.fontSize) * 1.4) || 16;
+
+        const fontSize = style.fontSize || "14px";
+        const fontFamily = style.fontFamily || "Consolas, monospace";
+        const font = `${fontSize} ${fontFamily}`;
+
+        if (!this.textMeasureCtx) {
+            const canvas = document.createElement("canvas");
+            this.textMeasureCtx = canvas.getContext("2d");
+        }
+
+        if (!this.textMeasureCtx) return null;
+
+        this.textMeasureCtx.font = font;
+        const charWidth = this.textMeasureCtx.measureText("M").width || 8;
+
+        const x = clientX - rect.left + textarea.scrollLeft - paddingLeft;
+        const y = clientY - rect.top + textarea.scrollTop - paddingTop;
+
+        const row = Math.max(0, Math.floor(y / lineHeight));
+        const lines = (textarea.value || "").split("\n");
+        const lineIndex = Math.min(lines.length - 1, row);
+        const lineText = lines[lineIndex] || "";
+
+        const rawCol = Math.round(x / charWidth);
+        const column = Math.min(Math.max(0, rawCol), lineText.length);
+
+        let index = column;
+        for (let i = 0; i < lineIndex; i += 1) {
+            index += lines[i].length + 1; // +1 por el salto de línea
+        }
+
+        return Math.min(index, textarea.value.length);
     },
 
     /* =======================================
