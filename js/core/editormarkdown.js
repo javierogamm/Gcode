@@ -9,6 +9,10 @@ const btnPegarAuto = document.getElementById("btnPegarAuto");
 const btnCopiar = document.getElementById("btnCopiar");
 const btnDescargar = document.getElementById("btnDescargar");
 const btnExportProyecto = document.getElementById("btnExportProyecto");
+const btnImportDoc = document.getElementById("btnImportDoc");
+if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.worker.min.js";
+}
 if (btnExportProyecto) {
     btnExportProyecto.addEventListener("click", () => {
         const textarea = document.getElementById("markdownText");
@@ -90,6 +94,149 @@ if (btnImportProyecto) {
 
         input.click();
     });
+}
+if (btnImportDoc) {
+    btnImportDoc.addEventListener("click", () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".docx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+        input.addEventListener("change", async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+
+            try {
+                btnImportDoc.disabled = true;
+                btnImportDoc.textContent = "⏳ Importando...";
+
+                const markdown = await importDocumentToMarkdown(file);
+                markdownText.value = markdown;
+                pushUndoState();
+                updateHighlight();
+            } catch (err) {
+                console.error(err);
+                alert("No se pudo importar el documento. " + (err && err.message ? err.message : ""));
+            } finally {
+                btnImportDoc.disabled = false;
+                btnImportDoc.textContent = "📄 Importar Word / PDF";
+                input.value = "";
+            }
+        });
+
+        input.click();
+    });
+}
+
+async function importDocumentToMarkdown(file) {
+    const name = (file && file.name ? file.name : "").toLowerCase();
+
+    if (name.endsWith(".pdf")) {
+        if (!window.pdfjsLib) throw new Error("Falta PDF.js para leer el PDF.");
+        const text = await pdfFileToText(file);
+        return (text || "").trim();
+    }
+
+    if (name.endsWith(".docx")) {
+        if (!window.JSZip) throw new Error("Falta JSZip para leer el Word.");
+        const md = await docxToMarkdown(file);
+        return (md || "").trim();
+    }
+
+    throw new Error("Formato no soportado. Usa Word (.docx) o PDF.");
+}
+
+async function pdfFileToText(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.worker.min.js";
+    }
+
+    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let text = "";
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const content = await page.getTextContent();
+        const items = content.items || [];
+        const pageText = items.map(item => item.str || "").join(" ").trim();
+        if (pageText) {
+            text += pageText;
+            if (pageNum < pdf.numPages) text += "\n\n";
+        }
+    }
+
+    return text;
+}
+
+async function docxToMarkdown(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const zip = await window.JSZip.loadAsync(arrayBuffer);
+    const documentFile = zip.file("word/document.xml");
+
+    if (!documentFile) {
+        throw new Error("El archivo Word no tiene el contenido esperado.");
+    }
+
+    const xmlContent = await documentFile.async("text");
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(xmlContent, "application/xml");
+
+    const paragraphs = [...xml.getElementsByTagName("w:p")];
+    const blocks = [];
+
+    paragraphs.forEach(p => {
+        const text = extractDocxParagraphText(p);
+        if (!text) return;
+
+        const isList = p.getElementsByTagName("w:numPr").length > 0;
+        const styleNode = p.querySelector("w\\:pPr w\\:pStyle");
+        const styleVal = styleNode ? (styleNode.getAttribute("w:val") || styleNode.getAttribute("val") || "") : "";
+        const headingLevel = getHeadingLevel(styleVal);
+
+        if (headingLevel) {
+            blocks.push(`${"#".repeat(headingLevel)} ${text}`);
+            return;
+        }
+
+        if (isList) {
+            blocks.push(`- ${text}`);
+            return;
+        }
+
+        blocks.push(text);
+        blocks.push("");
+    });
+
+    return blocks.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function getHeadingLevel(styleVal) {
+    const style = (styleVal || "").toLowerCase();
+    if (style.includes("heading1")) return 1;
+    if (style.includes("heading2")) return 2;
+    if (style.includes("heading3")) return 3;
+    return 0;
+}
+
+function extractDocxParagraphText(paragraph) {
+    const runs = [...paragraph.getElementsByTagName("w:r")];
+    let result = "";
+
+    runs.forEach(run => {
+        const texts = [...run.getElementsByTagName("w:t")].map(t => t.textContent).join("");
+        if (!texts) return;
+
+        const isBold = run.getElementsByTagName("w:b").length > 0;
+        const isItalic = run.getElementsByTagName("w:i").length > 0;
+        let chunk = texts;
+
+        if (isBold) chunk = `**${chunk}**`;
+        if (isItalic) chunk = `*${chunk}*`;
+
+        result += chunk;
+    });
+
+    return result.trim();
 }
 
 /* =======================================
