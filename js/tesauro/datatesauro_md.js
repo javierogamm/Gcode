@@ -349,44 +349,127 @@ const DataTesauro = {
     getCaretIndexFromPoint(textarea, clientX, clientY) {
         if (!textarea) return null;
 
+        const mirror = this.getCaretMirror(textarea);
+        if (!mirror) return null;
+
         const rect = textarea.getBoundingClientRect();
+        mirror.style.left = `${rect.left + window.scrollX}px`;
+        mirror.style.top = `${rect.top + window.scrollY}px`;
+        mirror.style.width = `${textarea.clientWidth}px`;
+
+        const text = textarea.value || "";
+        const len = text.length;
+        let low = 0;
+        let high = len;
+        let best = len;
+
+        const targetX = clientX;
+        const targetY = clientY;
+
+        while (low <= high) {
+            const mid = Math.floor((low + high) / 2);
+            const coords = this.getCaretCoordinates(textarea, mirror, mid);
+            if (!coords) break;
+
+            const { left, right, top, bottom } = coords;
+
+            // Ajustar por scroll actual del textarea
+            const adjustedTop = top - textarea.scrollTop;
+            const adjustedBottom = bottom - textarea.scrollTop;
+
+            if (targetY < adjustedTop) {
+                best = mid;
+                high = mid - 1;
+                continue;
+            }
+            if (targetY > adjustedBottom) {
+                low = mid + 1;
+                continue;
+            }
+
+            if (targetX < left) {
+                best = mid;
+                high = mid - 1;
+                continue;
+            }
+            if (targetX > right) {
+                low = mid + 1;
+                best = Math.min(mid + 1, len);
+                continue;
+            }
+
+            best = mid;
+            break;
+        }
+
+        return Math.min(Math.max(best, 0), len);
+    },
+
+    getCaretMirror(textarea) {
+        if (!this.caretMirror) {
+            const div = document.createElement("div");
+            div.id = "tesauroCaretMirror";
+            div.style.position = "absolute";
+            div.style.visibility = "hidden";
+            div.style.whiteSpace = "pre-wrap";
+            div.style.wordBreak = "break-word";
+            div.style.overflowWrap = "break-word";
+            div.style.pointerEvents = "none";
+            document.body.appendChild(div);
+            this.caretMirror = div;
+        }
+
+        const mirror = this.caretMirror;
         const style = window.getComputedStyle(textarea);
+        const properties = [
+            "fontFamily",
+            "fontSize",
+            "fontWeight",
+            "fontStyle",
+            "lineHeight",
+            "paddingTop",
+            "paddingRight",
+            "paddingBottom",
+            "paddingLeft",
+            "borderTopWidth",
+            "borderRightWidth",
+            "borderBottomWidth",
+            "borderLeftWidth",
+            "boxSizing",
+            "letterSpacing",
+        ];
 
-        const paddingLeft = parseFloat(style.paddingLeft) || 0;
-        const paddingTop = parseFloat(style.paddingTop) || 0;
-        const lineHeight = parseFloat(style.lineHeight) || (parseFloat(style.fontSize) * 1.4) || 16;
+        properties.forEach(prop => {
+            mirror.style[prop] = style[prop];
+        });
 
-        const fontSize = style.fontSize || "14px";
-        const fontFamily = style.fontFamily || "Consolas, monospace";
-        const font = `${fontSize} ${fontFamily}`;
+        mirror.style.whiteSpace = "pre-wrap";
+        mirror.style.wordBreak = "break-word";
+        mirror.style.overflowWrap = "break-word";
+        mirror.style.height = "auto";
+        mirror.style.minHeight = `${textarea.clientHeight}px`;
 
-        if (!this.textMeasureCtx) {
-            const canvas = document.createElement("canvas");
-            this.textMeasureCtx = canvas.getContext("2d");
-        }
+        return mirror;
+    },
 
-        if (!this.textMeasureCtx) return null;
+    getCaretCoordinates(textarea, mirror, index) {
+        if (!mirror) return null;
+        const text = textarea.value || "";
 
-        this.textMeasureCtx.font = font;
-        const charWidth = this.textMeasureCtx.measureText("M").width || 8;
+        mirror.textContent = text.slice(0, index);
+        const marker = document.createElement("span");
+        marker.textContent = "\u200b"; // marcador de ancho cero
+        mirror.appendChild(marker);
 
-        const x = clientX - rect.left + textarea.scrollLeft - paddingLeft;
-        const y = clientY - rect.top + textarea.scrollTop - paddingTop;
+        const rect = marker.getBoundingClientRect();
+        mirror.removeChild(marker);
 
-        const row = Math.max(0, Math.floor(y / lineHeight));
-        const lines = (textarea.value || "").split("\n");
-        const lineIndex = Math.min(lines.length - 1, row);
-        const lineText = lines[lineIndex] || "";
-
-        const rawCol = Math.round(x / charWidth);
-        const column = Math.min(Math.max(0, rawCol), lineText.length);
-
-        let index = column;
-        for (let i = 0; i < lineIndex; i += 1) {
-            index += lines[i].length + 1; // +1 por el salto de línea
-        }
-
-        return Math.min(index, textarea.value.length);
+        return {
+            left: rect.left,
+            right: rect.right,
+            top: rect.top,
+            bottom: rect.bottom,
+        };
     },
 
     /* =======================================
