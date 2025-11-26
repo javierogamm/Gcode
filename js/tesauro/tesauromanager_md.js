@@ -1988,13 +1988,15 @@ row.appendChild(tdDel);
             refFinal = refBase + idx++;
         }
 
+        const forceSiNo = refFinal.trim().toLowerCase() === "sino";
+
         const nuevo = {
             id: (typeof DataTesauro.generateId === "function")
                 ? DataTesauro.generateId()
                 : TesauroManager.generateId(),
             ref: refFinal,
             nombre: nombre.trim(),
-            tipo: "texto",
+            tipo: forceSiNo ? "si_no" : "texto",
             opciones: [],
             momento: "Solicitud",
             agrupacion: "Agrupación"

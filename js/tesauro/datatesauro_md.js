@@ -107,15 +107,10 @@ const DataTesauro = {
             btnLock.title = "Marcar tesauro como no editable";
             btnLock.innerHTML = "🔒 No editable";
 
-            // Intentar colocarlo a la derecha del botón "Anchos" (tablas)
-            const btnAnchos = document.getElementById("btnTableWidths");
-            if (btnAnchos && btnAnchos.nextSibling) {
-                toolbar.insertBefore(btnLock, btnAnchos.nextSibling);
-            } else if (btnAnchos) {
-                toolbar.appendChild(btnLock);
-            } else {
-                toolbar.appendChild(btnLock);
-            }
+            // Colocar el botón al final de la fila (a la derecha)
+            toolbar.appendChild(btnLock);
+            btnLock.style.marginLeft = "auto";
+            btnLock.style.order = "999";
 
             // No perder la selección al hacer click
             btnLock.addEventListener("mousedown", (e) => e.preventDefault());
@@ -519,7 +514,7 @@ const DataTesauro = {
 
         const nombre = (this.quickCreateNameInput.value || "").trim();
         let ref = (this.quickCreateRefInput.value || "").trim();
-        const tipo = this.quickCreateTypeSelect.value || "texto";
+        let tipo = this.quickCreateTypeSelect.value || "texto";
 
         if (!nombre) {
             alert("Debes indicar un nombre para el tesauro.");
@@ -540,6 +535,13 @@ const DataTesauro = {
         if (exists) {
             alert("Ya existe un tesauro con esa referencia.");
             return;
+        }
+
+        if (ref.trim().toLowerCase() === "sino") {
+            tipo = "si_no";
+            if (this.quickCreateTypeSelect) {
+                this.quickCreateTypeSelect.value = "si_no";
+            }
         }
 
         const nuevo = {
