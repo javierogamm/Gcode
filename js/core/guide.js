@@ -328,29 +328,26 @@
         demo.className = "guide-drag-demo";
         demo.innerHTML = `
             <span class="guide-drag-dot">🏷️</span>
-            <div class="guide-drag-card">
-                <span class="guide-drag-title">Tesauro simulado</span>
-                <span class="guide-drag-subtitle">Arrastra al centro</span>
-            </div>
+            <span class="guide-drag-label">TESAURO</span>
         `;
 
-        const baseLeft = panelRect.left + panelRect.width * 0.15;
+        const baseLeft = Math.max(12, panelRect.left + panelRect.width * 0.35);
         const baseTop = panelRect.top + 80;
 
         demo.style.left = `${baseLeft}px`;
         demo.style.top = `${baseTop}px`;
 
         if (editorRect) {
-            const targetX = editorRect.left + editorRect.width * 0.45;
+            const targetX = editorRect.left + editorRect.width * 0.25;
             const targetY = editorRect.top + editorRect.height * 0.3;
-            const deltaX = Math.max(-520, Math.min(160, targetX - baseLeft));
-            const deltaY = Math.max(-120, Math.min(180, targetY - baseTop));
+            const deltaX = Math.max(-420, Math.min(120, targetX - baseLeft));
+            const deltaY = Math.max(-140, Math.min(180, targetY - baseTop));
             demo.style.setProperty("--drag-x", `${deltaX}px`);
             demo.style.setProperty("--drag-y", `${deltaY}px`);
         }
 
         demo.style.animationIterationCount = "3";
-        demo.style.animationDuration = "3.4s";
+        demo.style.animationDuration = "4.6s";
         demo.addEventListener("animationend", () => {
             removeDragDemo();
         }, { once: true });
@@ -375,6 +372,12 @@
             }
             return null;
         };
+
+        steps.push({
+            title: managerBtn.textContent.trim() || "Tesauro Manager",
+            description: "Este botón flotante abre el gestor completo para administrar todos los tesauros.",
+            element: () => managerBtn
+        });
 
         steps.push({
             title: messages.tesauroManager.title,

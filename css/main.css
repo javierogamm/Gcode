@@ -842,7 +842,7 @@ body {
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
   pointer-events: none;
-  animation: guide-drag-move 3.4s ease-in-out 3;
+  animation: guide-drag-move 4.6s ease-in-out 3;
 }
 
 .guide-drag-dot {
