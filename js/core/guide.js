@@ -328,21 +328,35 @@
         demo.className = "guide-drag-demo";
         demo.innerHTML = `
             <span class="guide-drag-dot">🏷️</span>
-            <span class="guide-drag-label">Arrastra al texto</span>
+            <span class="guide-drag-label">TESAURO</span>
         `;
 
-        const baseLeft = panelRect.left + panelRect.width * 0.15;
-        const baseTop = panelRect.top + 80;
+        const baseLeft = Math.min(
+            Math.max(panelRect.left + panelRect.width * 0.5, 12),
+            window.innerWidth - 120
+        );
+        const baseTop = Math.min(
+            Math.max(panelRect.top + panelRect.height * 0.5, 12),
+            window.innerHeight - 120
+        );
 
         demo.style.left = `${baseLeft}px`;
         demo.style.top = `${baseTop}px`;
 
         if (editorRect) {
-            const deltaX = Math.max(-250, editorRect.left - baseLeft + 20);
-            const deltaY = Math.max(-60, Math.min(120, editorRect.top - baseTop + 60));
+            const targetX = editorRect.left + editorRect.width * 0.5;
+            const targetY = editorRect.top + editorRect.height * 0.5;
+            const deltaX = Math.max(-900, Math.min(160, targetX - baseLeft));
+            const deltaY = Math.max(-240, Math.min(240, targetY - baseTop));
             demo.style.setProperty("--drag-x", `${deltaX}px`);
             demo.style.setProperty("--drag-y", `${deltaY}px`);
         }
+
+        demo.style.animationIterationCount = "3";
+        demo.style.animationDuration = "4.6s";
+        demo.addEventListener("animationend", () => {
+            removeDragDemo();
+        }, { once: true });
 
         document.body.appendChild(demo);
         state.dragDemo = demo;
@@ -364,6 +378,12 @@
             }
             return null;
         };
+
+        steps.push({
+            title: managerBtn.textContent.trim() || "Tesauro Manager",
+            description: "Este botón flotante abre el gestor completo para administrar todos los tesauros.",
+            element: () => managerBtn
+        });
 
         steps.push({
             title: messages.tesauroManager.title,
