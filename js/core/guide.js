@@ -328,7 +328,10 @@
         demo.className = "guide-drag-demo";
         demo.innerHTML = `
             <span class="guide-drag-dot">🏷️</span>
-            <span class="guide-drag-label">Arrastra al texto</span>
+            <div class="guide-drag-card">
+                <span class="guide-drag-title">Tesauro simulado</span>
+                <span class="guide-drag-subtitle">Arrastra al centro</span>
+            </div>
         `;
 
         const baseLeft = panelRect.left + panelRect.width * 0.15;
@@ -338,11 +341,19 @@
         demo.style.top = `${baseTop}px`;
 
         if (editorRect) {
-            const deltaX = Math.max(-250, editorRect.left - baseLeft + 20);
-            const deltaY = Math.max(-60, Math.min(120, editorRect.top - baseTop + 60));
+            const targetX = editorRect.left + editorRect.width * 0.45;
+            const targetY = editorRect.top + editorRect.height * 0.3;
+            const deltaX = Math.max(-520, Math.min(160, targetX - baseLeft));
+            const deltaY = Math.max(-120, Math.min(180, targetY - baseTop));
             demo.style.setProperty("--drag-x", `${deltaX}px`);
             demo.style.setProperty("--drag-y", `${deltaY}px`);
         }
+
+        demo.style.animationIterationCount = "3";
+        demo.style.animationDuration = "3.4s";
+        demo.addEventListener("animationend", () => {
+            removeDragDemo();
+        }, { once: true });
 
         document.body.appendChild(demo);
         state.dragDemo = demo;
