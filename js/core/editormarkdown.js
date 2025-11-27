@@ -10,6 +10,7 @@ const btnCopiar = document.getElementById("btnCopiar");
 const btnDescargar = document.getElementById("btnDescargar");
 const btnExportProyecto = document.getElementById("btnExportProyecto");
 const btnImportProyecto = document.getElementById("btnImportProyecto");
+const btnExportCsv = document.getElementById("btnExportCsv");
 
 // Barra de acciones flotantes (Sections, LET, Definition, Tesauro)
 function ensureFloatingActionRow() {
@@ -310,6 +311,306 @@ function createMarkdownTable() {
 /* =======================================
    BOTONES LATERALES
 ======================================= */
+
+const csvExportState = {
+    tipo: "formulario",
+    entidad: "",
+    actividad: "",
+    procedimiento: "",
+    tipoTarea: "",
+    nombreTarea: "",
+    grupo: "",
+    tituloDocumento: "",
+    tipoDocumentalDocumento: ""
+};
+
+const csvHeaders = [
+    "Nombre Entidad",
+    "Nombre Actividad",
+    "Nombre Procedimiento",
+    "Sobrescribir",
+    "Tipo Tarea",
+    "Nombre Tarea",
+    "Días Alerta",
+    "Tipo de días",
+    "Prioritario",
+    "Descripción Tarea",
+    "Asignado a Usuario - Nombre",
+    "Asignado a Grupo - Nombre",
+    "Asignado a responsables exp",
+    "Asignado a unidad gestora",
+    "Asignado a Usuario - Abre Tarea",
+    "Asignado a Usuario - Abre Exp",
+    "Permite reasignar",
+    "Inicio Inmediato",
+    "Condición inicio inmediato",
+    "Nombre tesauro",
+    "Condición tesauro",
+    "Valor tesauro",
+    "Inicio manual",
+    "Acceso temporal Expediente",
+    "Plazo Trámite",
+    "Plazo Justificante",
+    "Tipo documental",
+    "Tipo Circuito Resolución",
+    "Nombre Circuito Resolución",
+    "Órgano Circuito Resolución",
+    "Cambiar estado",
+    "Nombre Nuevo Estado",
+    "Generar plantilla",
+    "Formato plantilla",
+    "Cargar documento",
+    "Circuito documento",
+    "Titulo documento",
+    "Tipo documental documento",
+    "Texto plantilla",
+    "Eliminar",
+    "Finalizar en plazo",
+    "Plazo - Número de días",
+    "Plazo - Tipo de días"
+];
+
+function escapeCsvValue(value) {
+    const normalized = (value ?? "").toString().replace(/\r\n/g, "\n");
+    const escaped = normalized.replace(/"/g, '""');
+    return `"${escaped}"`;
+}
+
+let csvExportModal = null;
+
+function toggleCsvDocFields(modal, tipoValor) {
+    const docSections = modal.querySelectorAll(".csv-doc-only");
+    const isDocumento = tipoValor === "documento";
+    docSections.forEach(section => {
+        section.style.display = isDocumento ? "grid" : "none";
+        section.querySelectorAll("input").forEach(input => {
+            if (!isDocumento) input.value = "";
+            input.disabled = !isDocumento;
+        });
+    });
+}
+
+function ensureCsvExportModal() {
+    if (csvExportModal) return csvExportModal;
+
+    const modal = document.createElement("div");
+    modal.id = "csvExportModal";
+    modal.className = "modal-overlay";
+    modal.innerHTML = `
+        <div class="modal-card csv-export-card">
+            <div class="modal-header">
+                <h3>Exportar a CSV</h3>
+                <button type="button" class="modal-close" aria-label="Cerrar">✕</button>
+            </div>
+            <form id="csvExportForm" class="modal-body">
+                <div class="form-grid">
+                    <label class="form-row">
+                        <span>Tipo de exportación</span>
+                        <select id="csvExpTipo" name="tipo" required>
+                            <option value="formulario">Formulario</option>
+                            <option value="documento">Documento</option>
+                        </select>
+                    </label>
+                    <label class="form-row">
+                        <span>Nombre entidad</span>
+                        <input id="csvExpEntidad" name="entidad" type="text" required />
+                    </label>
+                    <label class="form-row">
+                        <span>Nombre actividad</span>
+                        <input id="csvExpActividad" name="actividad" type="text" required />
+                    </label>
+                    <label class="form-row">
+                        <span>Nombre procedimiento</span>
+                        <input id="csvExpProcedimiento" name="procedimiento" type="text" required />
+                    </label>
+                    <label class="form-row">
+                        <span>Tipo de tarea</span>
+                        <input id="csvExpTipoTarea" name="tipoTarea" type="text" required />
+                    </label>
+                    <label class="form-row">
+                        <span>Nombre de la tarea</span>
+                        <input id="csvExpNombreTarea" name="nombreTarea" type="text" required />
+                    </label>
+                    <label class="form-row">
+                        <span>Asignado a Grupo - Nombre</span>
+                        <input id="csvExpGrupo" name="grupo" type="text" required />
+                    </label>
+                </div>
+
+                <div class="form-grid csv-doc-only">
+                    <label class="form-row">
+                        <span>Título del documento</span>
+                        <input id="csvExpTituloDoc" name="tituloDocumento" type="text" />
+                    </label>
+                    <label class="form-row">
+                        <span>Tipo documental del documento</span>
+                        <input id="csvExpTipoDoc" name="tipoDocumentalDocumento" type="text" />
+                    </label>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" data-action="cancelar">Cancelar</button>
+                    <button type="submit" class="btn-primary">Exportar CSV</button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    const form = modal.querySelector("#csvExportForm");
+    const closeBtn = modal.querySelector(".modal-close");
+    const cancelBtn = modal.querySelector("[data-action='cancelar']");
+    const tipoSelect = modal.querySelector("#csvExpTipo");
+
+    function closeModal() {
+        modal.style.display = "none";
+    }
+
+    function syncDocFields() {
+        const tipoValor = (tipoSelect.value || "formulario").toLowerCase();
+        toggleCsvDocFields(modal, tipoValor);
+    }
+
+    modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    if (closeBtn) closeBtn.addEventListener("click", closeModal);
+    if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+    if (tipoSelect) tipoSelect.addEventListener("change", syncDocFields);
+
+    if (form) {
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            const tipo = (formData.get("tipo") || "formulario").toString().toLowerCase();
+
+            csvExportState.tipo = tipo === "documento" ? "documento" : "formulario";
+            csvExportState.entidad = (formData.get("entidad") || "").toString().trim();
+            csvExportState.actividad = (formData.get("actividad") || "").toString().trim();
+            csvExportState.procedimiento = (formData.get("procedimiento") || "").toString().trim();
+            csvExportState.tipoTarea = (formData.get("tipoTarea") || "").toString().trim();
+            csvExportState.nombreTarea = (formData.get("nombreTarea") || "").toString().trim();
+            csvExportState.grupo = (formData.get("grupo") || "").toString().trim();
+            csvExportState.tituloDocumento = (formData.get("tituloDocumento") || "").toString().trim();
+            csvExportState.tipoDocumentalDocumento = (formData.get("tipoDocumentalDocumento") || "").toString().trim();
+
+            if (window.TesauroManager) {
+                TesauroManager.exportEntidad = csvExportState.entidad;
+                TesauroManager.exportActividad = csvExportState.actividad;
+            }
+
+            generateCsvFromState(csvExportState);
+            closeModal();
+        });
+    }
+
+    csvExportModal = modal;
+    document.body.appendChild(csvExportModal);
+    syncDocFields();
+    return csvExportModal;
+}
+
+function fillExportDefaults(modal) {
+    const entidadDefault = csvExportState.entidad || (window.TesauroManager ? TesauroManager.exportEntidad : "") || "";
+    const actividadDefault = csvExportState.actividad || (window.TesauroManager ? TesauroManager.exportActividad : "") || "";
+
+    const tipoSelect = modal.querySelector("#csvExpTipo");
+    const entidadInput = modal.querySelector("#csvExpEntidad");
+    const actividadInput = modal.querySelector("#csvExpActividad");
+    const procedimientoInput = modal.querySelector("#csvExpProcedimiento");
+    const tipoTareaInput = modal.querySelector("#csvExpTipoTarea");
+    const nombreTareaInput = modal.querySelector("#csvExpNombreTarea");
+    const grupoInput = modal.querySelector("#csvExpGrupo");
+    const tituloDocInput = modal.querySelector("#csvExpTituloDoc");
+    const tipoDocInput = modal.querySelector("#csvExpTipoDoc");
+
+    if (tipoSelect) tipoSelect.value = csvExportState.tipo || "formulario";
+    if (entidadInput) entidadInput.value = entidadDefault;
+    if (actividadInput) actividadInput.value = actividadDefault;
+    if (procedimientoInput) procedimientoInput.value = csvExportState.procedimiento || "";
+    if (tipoTareaInput) tipoTareaInput.value = csvExportState.tipoTarea || "";
+    if (nombreTareaInput) nombreTareaInput.value = csvExportState.nombreTarea || "";
+    if (grupoInput) grupoInput.value = csvExportState.grupo || "";
+    if (tituloDocInput) tituloDocInput.value = csvExportState.tituloDocumento || "";
+    if (tipoDocInput) tipoDocInput.value = csvExportState.tipoDocumentalDocumento || "";
+
+    toggleCsvDocFields(modal, (tipoSelect?.value || "formulario").toLowerCase());
+}
+
+function generateCsvFromState(state) {
+    const isDocumento = state.tipo === "documento";
+    const markdownContent = (markdownText && markdownText.value) ? markdownText.value : "";
+
+    const rowValues = [
+        state.entidad,
+        state.actividad,
+        state.procedimiento,
+        "Sí",
+        state.tipoTarea,
+        state.nombreTarea,
+        "",
+        "",
+        "No",
+        "",
+        "",
+        state.grupo,
+        "",
+        "",
+        "",
+        "",
+        "No",
+        "No",
+        "",
+        "",
+        "",
+        "",
+        "No",
+        "No",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "No",
+        "Sí",
+        isDocumento ? "PDF" : "",
+        isDocumento ? "Sí" : "",
+        "",
+        isDocumento ? state.tituloDocumento : "",
+        isDocumento ? state.tipoDocumentalDocumento : "",
+        markdownContent,
+        "No",
+        "",
+        "",
+        ""
+    ];
+
+    const csvRow = rowValues.map(escapeCsvValue).join(";");
+    const csvContent = `${csvHeaders.join(";")}\r\n${csvRow}`;
+    const bom = "\uFEFF";
+    const blob = new Blob([bom, csvContent], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "export_markdown.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function openCsvExportModal() {
+    const modal = ensureCsvExportModal();
+    fillExportDefaults(modal);
+    modal.style.display = "flex";
+}
+
+if (btnExportCsv) {
+    btnExportCsv.addEventListener("click", () => {
+        openCsvExportModal();
+    });
+}
 
 btnNuevo.addEventListener("click", () => {
     markdownText.value = "";
