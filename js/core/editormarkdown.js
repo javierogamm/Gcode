@@ -10,6 +10,7 @@ const btnCopiar = document.getElementById("btnCopiar");
 const btnDescargar = document.getElementById("btnDescargar");
 const btnExportProyecto = document.getElementById("btnExportProyecto");
 const btnImportProyecto = document.getElementById("btnImportProyecto");
+const btnExportCsv = document.getElementById("btnExportCsv");
 
 // Barra de acciones flotantes (Sections, LET, Definition, Tesauro)
 function ensureFloatingActionRow() {
@@ -310,6 +311,166 @@ function createMarkdownTable() {
 /* =======================================
    BOTONES LATERALES
 ======================================= */
+
+const csvHeaders = [
+    "Nombre Entidad",
+    "Nombre Actividad",
+    "Nombre Procedimiento",
+    "Sobrescribir",
+    "Tipo Tarea",
+    "Nombre Tarea",
+    "Días Alerta",
+    "Tipo de días",
+    "Prioritario",
+    "Descripción Tarea",
+    "Asignado a Usuario - Nombre",
+    "Asignado a Grupo - Nombre",
+    "Asignado a responsables exp",
+    "Asignado a unidad gestora",
+    "Asignado a Usuario - Abre Tarea",
+    "Asignado a Usuario - Abre Exp",
+    "Permite reasignar",
+    "Inicio Inmediato",
+    "Condición inicio inmediato",
+    "Nombre tesauro",
+    "Condición tesauro",
+    "Valor tesauro",
+    "Inicio manual",
+    "Acceso temporal Expediente",
+    "Plazo Trámite",
+    "Plazo Justificante",
+    "Tipo documental",
+    "Tipo Circuito Resolución",
+    "Nombre Circuito Resolución",
+    "Órgano Circuito Resolución",
+    "Cambiar estado",
+    "Nombre Nuevo Estado",
+    "Generar plantilla",
+    "Formato plantilla",
+    "Cargar documento",
+    "Circuito documento",
+    "Titulo documento",
+    "Tipo documental documento",
+    "Texto plantilla",
+    "Eliminar",
+    "Finalizar en plazo",
+    "Plazo - Número de días",
+    "Plazo - Tipo de días"
+];
+
+function escapeCsvValue(value) {
+    const normalized = (value ?? "").toString().replace(/\r\n/g, "\n");
+    const escaped = normalized.replace(/"/g, '""');
+    return `"${escaped}"`;
+}
+
+if (btnExportCsv) {
+    btnExportCsv.addEventListener("click", () => {
+        const tipoExport = prompt("¿Quieres exportar como Formulario o Documento?");
+        if (tipoExport === null) return;
+
+        const tipoNormalized = tipoExport.trim().toLowerCase();
+        const isFormulario = tipoNormalized.startsWith("form");
+        const isDocumento = tipoNormalized.startsWith("docu") || tipoNormalized.startsWith("doc");
+
+        if (!isFormulario && !isDocumento) {
+            alert("Responde con 'Formulario' o 'Documento' para continuar.");
+            return;
+        }
+
+        const entidadDefault = (window.TesauroManager && TesauroManager.exportEntidad) ? TesauroManager.exportEntidad : "";
+        const actividadDefault = (window.TesauroManager && TesauroManager.exportActividad) ? TesauroManager.exportActividad : "";
+
+        const entidad = prompt("Nombre de la entidad (mismo que en CSV de tesauro):", entidadDefault);
+        if (entidad === null) return;
+
+        const actividad = prompt("Nombre de la actividad (mismo que en CSV de tesauro):", actividadDefault);
+        if (actividad === null) return;
+
+        const procedimiento = prompt("Nombre del procedimiento:");
+        if (procedimiento === null) return;
+
+        const tipoTarea = prompt("Tipo de tarea:");
+        if (tipoTarea === null) return;
+
+        const nombreTarea = prompt("Nombre de la tarea:");
+        if (nombreTarea === null) return;
+
+        const grupo = prompt("Asignado a Grupo - Nombre:");
+        if (grupo === null) return;
+
+        let tituloDocumento = "";
+        let tipoDocumentalDocumento = "";
+
+        if (isDocumento) {
+            const tituloInput = prompt("Título del documento:");
+            if (tituloInput === null) return;
+            tituloDocumento = tituloInput.trim();
+
+            const tipoDocInput = prompt("Tipo documental del documento:");
+            if (tipoDocInput === null) return;
+            tipoDocumentalDocumento = tipoDocInput.trim();
+        }
+
+        const markdownContent = (markdownText && markdownText.value) ? markdownText.value : "";
+
+        const rowValues = [
+            entidad.trim(),
+            actividad.trim(),
+            procedimiento.trim(),
+            "Sí",
+            tipoTarea.trim(),
+            nombreTarea.trim(),
+            "",
+            "",
+            "No",
+            "",
+            "",
+            grupo.trim(),
+            "",
+            "",
+            "",
+            "",
+            "No",
+            "No",
+            "",
+            "",
+            "",
+            "",
+            "No",
+            "No",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "No",
+            "Sí",
+            isDocumento ? "PDF" : "",
+            isDocumento ? "Sí" : "",
+            "",
+            isDocumento ? tituloDocumento : "",
+            isDocumento ? tipoDocumentalDocumento : "",
+            markdownContent,
+            "No",
+            "",
+            "",
+            ""
+        ];
+
+        const csvRow = rowValues.map(escapeCsvValue).join(";");
+        const csvContent = `${csvHeaders.join(";")}\r\n${csvRow}`;
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "export_markdown.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+}
 
 btnNuevo.addEventListener("click", () => {
     markdownText.value = "";
