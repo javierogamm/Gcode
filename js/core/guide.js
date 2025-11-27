@@ -331,17 +331,23 @@
             <span class="guide-drag-label">TESAURO</span>
         `;
 
-        const baseLeft = Math.max(12, panelRect.left + panelRect.width * 0.35);
-        const baseTop = panelRect.top + 80;
+        const baseLeft = Math.min(
+            Math.max(panelRect.left + panelRect.width * 0.5, 12),
+            window.innerWidth - 120
+        );
+        const baseTop = Math.min(
+            Math.max(panelRect.top + panelRect.height * 0.5, 12),
+            window.innerHeight - 120
+        );
 
         demo.style.left = `${baseLeft}px`;
         demo.style.top = `${baseTop}px`;
 
         if (editorRect) {
-            const targetX = editorRect.left + editorRect.width * 0.25;
-            const targetY = editorRect.top + editorRect.height * 0.3;
-            const deltaX = Math.max(-420, Math.min(120, targetX - baseLeft));
-            const deltaY = Math.max(-140, Math.min(180, targetY - baseTop));
+            const targetX = editorRect.left + editorRect.width * 0.5;
+            const targetY = editorRect.top + editorRect.height * 0.5;
+            const deltaX = Math.max(-900, Math.min(160, targetX - baseLeft));
+            const deltaY = Math.max(-240, Math.min(240, targetY - baseTop));
             demo.style.setProperty("--drag-x", `${deltaX}px`);
             demo.style.setProperty("--drag-y", `${deltaY}px`);
         }
