@@ -32,8 +32,10 @@ const LetManager = {
 
     modal: null,
     refSelect: null,
+    refTargetSelect: null,
     refInput: null,
     formulaInput: null,
+    refHint: null,
     tesauroList: null,
     defList: null,
 
@@ -52,6 +54,9 @@ const LetManager = {
 
     // rango de LET en modo edición (start, end) o null si es nuevo
     editingLetRange: null,
+
+    // tipo de referencia destino: personalized (tesauro) | variable
+    destRefKind: "personalized",
 
     /* =======================================
        INIT
@@ -109,11 +114,11 @@ const LetManager = {
         div.innerHTML = `
             <div style="
                 background:white;
-                padding:18px 20px;
-                border-radius:10px;
-                box-shadow:0 4px 16px rgba(0,0,0,0.3);
-                width:860px;
-                max-width:96%;
+                padding:22px 24px;
+                border-radius:12px;
+                box-shadow:0 8px 28px rgba(0,0,0,0.28);
+                width:1140px;
+                max-width:98%;
                 font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
                 font-size:14px;
             ">
@@ -124,35 +129,48 @@ const LetManager = {
                 <p style="margin:0 0 12px 0; font-size:12px; color:#6b7280;">
                     Genera una instrucción
                     <code>{{let | reference: personalized.MiCampo | result: ...}}</code>
+                    o <code>{{let | reference: variable.MiVariable | result: ...}}</code>
                     para cálculos con tesauros <strong>número / moneda / sí_no</strong>
                     y variables <code>{{definition}}</code> de tipo <strong>numeric</strong>.
                 </p>
 
-                <div style="display:flex; gap:14px; align-items:flex-start;">
+                <div style="display:flex; gap:18px; align-items:flex-start;">
                     <!-- Columna izquierda: referencia + fórmula -->
-                    <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+                    <div style="flex:1; display:flex; flex-direction:column; gap:10px; min-width:0;">
                         <div>
                             <span style="display:block; font-size:12px; color:#6b7280; margin-bottom:3px;">
-                                Referencia destino (personalized.REF)
+                                Referencia destino (personalized.REF / variable.REF)
                             </span>
-                            <div style="display:flex; gap:6px;">
+                            <div style="display:flex; gap:10px; width:100%;">
                                 <select id="letRefSelect" style="
                                     flex:1;
-                                    padding:5px 6px;
-                                    border-radius:6px;
+                                    padding:7px 8px;
+                                    border-radius:8px;
                                     border:1px solid #cbd5e1;
-                                    font-size:12px;
+                                    font-size:13px;
+                                    min-width:0;
                                 "></select>
+                                <select id="letRefTarget" style="
+                                    min-width:240px;
+                                    max-width:320px;
+                                    padding:7px 8px;
+                                    border-radius:8px;
+                                    border:1px solid #cbd5e1;
+                                    font-size:13px;
+                                ">
+                                    <option value="personalized">Tesauro (personalized.)</option>
+                                    <option value="variable">Variable (variable.)</option>
+                                </select>
                             </div>
                             <input id="letRefInput" type="text" placeholder="MiCampoResultado" style="
                                 margin-top:6px;
                                 width:100%;
-                                padding:5px 7px;
-                                border-radius:6px;
+                                padding:8px 10px;
+                                border-radius:8px;
                                 border:1px solid #cbd5e1;
-                                font-size:13px;
+                                font-size:14px;
                             ">
-                            <p style="font-size:11px; color:#9ca3af; margin:4px 0 0 0;">
+                            <p id="letRefHint" style="font-size:11px; color:#9ca3af; margin:4px 0 0 0;">
                                 Se insertará como <code>personalized.&lt;referencia&gt;</code>.
                             </p>
                         </div>
@@ -161,50 +179,50 @@ const LetManager = {
                             <span style="display:block; font-size:12px; color:#6b7280; margin-bottom:3px;">
                                 Fórmula (result)
                             </span>
-                            <textarea id="letFormulaInput" rows="4" style="
+                            <textarea id="letFormulaInput" rows="6" style="
                                 width:100%;
-                                padding:6px 8px;
-                                border-radius:6px;
+                                padding:10px 12px;
+                                border-radius:8px;
                                 border:1px solid #cbd5e1;
-                                font-size:13px;
+                                font-size:14px;
                                 font-family:Consolas,monospace;
                                 resize:vertical;
                             "></textarea>
 
                             <!-- Barra de operadores rápidos -->
                             <div id="letOpBar" style="
-                                margin-top:6px;
+                                margin-top:8px;
                                 display:flex;
                                 flex-wrap:wrap;
-                                gap:4px;
+                                gap:6px;
                                 align-items:center;
-                                font-size:11px;
+                                font-size:12px;
                                 color:#6b7280;
                             ">
                                 <span>Operadores rápidos:</span>
                                 <button type="button" data-op="+" style="
-                                    padding:2px 6px;
+                                    padding:4px 8px;
                                     border-radius:999px;
                                     border:1px solid #cbd5e1;
                                     background:#f9fafb;
                                     cursor:pointer;
                                 ">+</button>
                                 <button type="button" data-op="-" style="
-                                    padding:2px 6px;
+                                    padding:4px 8px;
                                     border-radius:999px;
                                     border:1px solid #cbd5e1;
                                     background:#f9fafb;
                                     cursor:pointer;
                                 ">-</button>
                                 <button type="button" data-op="*" style="
-                                    padding:2px 6px;
+                                    padding:4px 8px;
                                     border-radius:999px;
                                     border:1px solid #cbd5e1;
                                     background:#f9fafb;
                                     cursor:pointer;
                                 ">*</button>
                                 <button type="button" data-op="/" style="
-                                    padding:2px 6px;
+                                    padding:4px 8px;
                                     border-radius:999px;
                                     border:1px solid #cbd5e1;
                                     background:#f9fafb;
@@ -212,7 +230,7 @@ const LetManager = {
                                 ">/</button>
                                 <!-- *** CAMBIO: botón de paréntesis ahora es "()" y se ha eliminado el botón separado de ")" -->
                                 <button type="button" data-op="()" style="
-                                    padding:2px 6px;
+                                    padding:4px 8px;
                                     border-radius:999px;
                                     border:1px solid #cbd5e1;
                                     background:#f9fafb;
@@ -224,23 +242,23 @@ const LetManager = {
 
                             <!-- Atajos SI / NO -->
                             <div id="letBoolBar" style="
-                                margin-top:6px;
+                                margin-top:8px;
                                 display:flex;
                                 align-items:center;
-                                gap:4px;
-                                font-size:11px;
+                                gap:8px;
+                                font-size:12px;
                                 color:#6b7280;
                             ">
                                 <span>Atajos sí/no:</span>
                                 <button type="button" data-bool="si" style="
-                                    padding:2px 8px;
+                                    padding:4px 10px;
                                     border-radius:999px;
                                     border:1px solid #cbd5e1;
                                     background:#f9fafb;
                                     cursor:pointer;
                                 ">SI</button>
                                 <button type="button" data-bool="no" style="
-                                    padding:2px 8px;
+                                    padding:4px 10px;
                                     border-radius:999px;
                                     border:1px solid #cbd5e1;
                                     background:#f9fafb;
@@ -258,7 +276,7 @@ const LetManager = {
                     </div>
 
                     <!-- Columna derecha: tesauros + variables -->
-                    <div style="width:260px; border-left:1px solid #e5e7eb; padding-left:12px;">
+                    <div style="width:320px; border-left:1px solid #e5e7eb; padding-left:14px; flex-shrink:0;">
                         <h3 style="margin:0 0 6px 0; font-size:13px; color:#111827;">
                             Tesauros para usar en la fórmula
                         </h3>
@@ -268,39 +286,39 @@ const LetManager = {
                         </p>
                         <input id="letTesauroSearch" type="text" placeholder="Buscar por nombre o referencia..." style="
                                 width:100%;
-                                margin:0 0 6px 0;
-                                padding:4px 6px;
-                                border-radius:6px;
+                                margin:0 0 8px 0;
+                                padding:7px 8px;
+                                border-radius:8px;
                                 border:1px solid #cbd5e1;
-                                font-size:12px;
+                                font-size:13px;
                             ">
                             <div id="letTesauroList" style="
-                            max-height:160px;
-                            min-height:160px;
+                            max-height:220px;
+                            min-height:220px;
                             overflow:auto;
-                            border-radius:6px;
+                            border-radius:8px;
                             border:1px solid #e5e7eb;
                             background:#f9fafb;
-                            padding:4px;
+                            padding:6px;
                             font-size:12px;
                         "></div>
 
-                        <div style="margin-top:10px; padding-top:8px; border-top:1px dashed #e5e7eb;"></div>
+                        <div style="margin-top:12px; padding-top:10px; border-top:1px dashed #e5e7eb;"></div>
 
                         <h3 style="margin:8px 0 4px 0; font-size:13px; color:#111827;">
                             Variables (definition, numeric)
                         </h3>
-                        <p style="margin:0 0 6px 0; font-size:11px; color:#6b7280;">
+                        <p style="margin:0 0 8px 0; font-size:11px; color:#6b7280;">
                             Clic para insertar la <strong>referencia</strong> de la variable
                             (en el código será <code>variable.REF</code>).
                         </p>
                         <div id="letDefinitionList" style="
-                            max-height:120px;
+                            max-height:180px;
                             overflow:auto;
                             border-radius:6px;
                             border:1px solid #dbeafe;
                             background:#eff6ff;
-                            padding:4px;
+                            padding:6px;
                             font-size:12px;
                         "></div>
                     </div>
@@ -321,23 +339,23 @@ const LetManager = {
                             style="width:60px; padding:4px 6px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
                     </label>
                 </div>
-                <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:8px;">
+                <div style="margin-top:18px; display:flex; justify-content:flex-end; gap:10px;">
                     <button id="letCancelBtn" type="button" style="
-                        padding:7px 12px;
-                        border-radius:6px;
+                        padding:9px 14px;
+                        border-radius:8px;
                         border:1px solid #e5e7eb;
                         background:#f3f4f6;
-                        font-size:13px;
+                        font-size:14px;
                         cursor:pointer;
                     ">Cancelar</button>
 
                     <button id="letOkBtn" type="button" style="
-                        padding:7px 14px;
-                        border-radius:6px;
+                        padding:9px 16px;
+                        border-radius:8px;
                         border:none;
                         background:#1d4ed8;
                         color:white;
-                        font-size:13px;
+                        font-size:14px;
                         cursor:pointer;
                         font-weight:500;
                     ">Insertar LET</button>
@@ -349,6 +367,7 @@ const LetManager = {
 
         this.modal        = div;
         this.refSelect    = div.querySelector("#letRefSelect");
+        this.refTargetSelect = div.querySelector("#letRefTarget");
         this.refInput     = div.querySelector("#letRefInput");
         this.formulaInput = div.querySelector("#letFormulaInput");
         this.zeroIfNullInput = div.querySelector("#letZeroIfNull");
@@ -356,6 +375,7 @@ const LetManager = {
         this.tesauroList  = div.querySelector("#letTesauroList");
         this.defList      = div.querySelector("#letDefinitionList");
         this.tesauroSearch = div.querySelector("#letTesauroSearch");  // *** NUEVO ***
+        this.refHint      = div.querySelector("#letRefHint");
 
         if (this.tesauroSearch) {
             const onSearchChange = () => this.renderTesauroList();
@@ -387,6 +407,10 @@ const LetManager = {
         // Cambiar referencia al seleccionar tesauro destino
         if (this.refSelect) {
             this.refSelect.addEventListener("change", () => this.onChangeRefSelect());
+        }
+
+        if (this.refTargetSelect) {
+            this.refTargetSelect.addEventListener("change", () => this.onChangeRefTarget());
         }
 
         // *** CAMBIO: lógica de operadores rápidos, incluyendo "()" que envuelve selección
@@ -455,6 +479,7 @@ const LetManager = {
        Utilidades tipo destino
     ======================================= */
     getDestType() {
+        if (this.destRefKind === "variable") return "variable";
         const f = this.currentDestField;
         if (!f || !f.tipo) return null;
         return String(f.tipo);
@@ -462,13 +487,13 @@ const LetManager = {
 
     isNumericDest() {
         const t = this.getDestType();
-        return t === "numero" || t === "moneda";
+        return t === "numero" || t === "moneda" || t === "variable";
     },
 
     updateFormulaUIForDestType() {
         const destType = this.getDestType();
         const isBool   = destType === "si_no";
-        const isNum    = destType === "numero" || destType === "moneda";
+        const isNum    = destType === "numero" || destType === "moneda" || destType === "variable";
 
         if (this.formulaInput) {
             this.formulaInput.disabled = isBool;
@@ -550,16 +575,39 @@ const LetManager = {
 
         const optNone = document.createElement("option");
         optNone.value = "";
+        optNone.dataset.kind = "manual";
         optNone.textContent = "— Referencia manual —";
         this.refSelect.appendChild(optNone);
 
-        this.tesauroFields.forEach(function (c, idx) {
+        const isVariableTarget = this.destRefKind === "variable";
+        const sourceList = isVariableTarget ? this.definitionVars : this.tesauroFields;
+
+        if (!sourceList.length) {
+            const empty = document.createElement("option");
+            empty.value = "";
+            empty.dataset.kind = isVariableTarget ? "variable" : "tesauro";
+            empty.textContent = isVariableTarget
+                ? "(sin variables numeric definidas)"
+                : "(sin tesauros numéricos disponibles)";
+            empty.disabled = true;
+            this.refSelect.appendChild(empty);
+            return;
+        }
+
+        sourceList.forEach(function (item, idx) {
             const o = document.createElement("option");
             o.value = String(idx);
-            const nombre = c.nombre || c.ref || "(sin nombre)";
-            const ref = c.ref || "";
-            const tipo = c.tipo || "";
-            o.textContent = `${nombre} (${ref}) [${tipo}]`;
+            o.dataset.kind = isVariableTarget ? "variable" : "tesauro";
+
+            if (isVariableTarget) {
+                o.textContent = `${item.ref} [variable]`;
+            } else {
+                const nombre = item.nombre || item.ref || "(sin nombre)";
+                const ref = item.ref || "";
+                const tipo = item.tipo || "";
+                o.textContent = `${nombre} (${ref}) [${tipo}]`;
+            }
+
             this.refSelect.appendChild(o);
         }, this);
     },
@@ -769,21 +817,37 @@ const LetManager = {
         if (!this.refSelect || !this.refInput) return;
 
         const idxStr = this.refSelect.value;
+        const selectedOption = this.refSelect.options[this.refSelect.selectedIndex];
+        const selectedKind = selectedOption ? selectedOption.dataset.kind : null;
 
         this.currentDestField = null;
+        if (selectedKind === "variable") {
+            this.destRefKind = "variable";
+            if (this.refTargetSelect) {
+                this.refTargetSelect.value = "variable";
+            }
+        } else if (selectedKind === "tesauro") {
+            this.destRefKind = "personalized";
+            if (this.refTargetSelect) {
+                this.refTargetSelect.value = "personalized";
+            }
+        }
 
         if (!idxStr) {
             this.refInput.disabled = false;
             this.updateFormulaUIForDestType();
+            this.updateRefHint();
             return;
         }
 
         const idx = parseInt(idxStr, 10);
-        const field = this.tesauroFields[idx];
+        const sourceList = selectedKind === "variable" ? this.definitionVars : this.tesauroFields;
+        const field = sourceList[idx];
 
         if (!field) {
             this.refInput.disabled = false;
             this.updateFormulaUIForDestType();
+            this.updateRefHint();
             return;
         }
 
@@ -791,8 +855,33 @@ const LetManager = {
         this.refInput.value = ref;
         this.refInput.disabled = true;
 
-        this.currentDestField = field;
+        this.currentDestField = selectedKind === "variable" ? { tipo: "variable" } : field;
         this.updateFormulaUIForDestType();
+        this.updateRefHint();
+    },
+
+    onChangeRefTarget() {
+        const sel = this.refTargetSelect;
+        if (!sel) return;
+
+        const val = sel.value === "variable" ? "variable" : "personalized";
+        this.destRefKind = val;
+
+        if (val === "variable") {
+            this.currentDestField = { tipo: "variable" };
+            if (this.refSelect) {
+                this.refSelect.value = "";
+            }
+            if (this.refInput) {
+                this.refInput.disabled = false;
+            }
+        } else {
+            this.currentDestField = null;
+        }
+
+        this.populateRefSelect();
+        this.updateFormulaUIForDestType();
+        this.updateRefHint();
     },
 
     /* =======================================
@@ -858,8 +947,13 @@ const LetManager = {
 
         // Reference: puede venir como personalized.REF
         let destRef = refPart;
+        this.destRefKind = "personalized";
         if (/^personalized\./i.test(destRef)) {
             destRef = destRef.replace(/^personalized\./i, "").trim();
+        } else if (/^variable\./i.test(destRef)) {
+            destRef = destRef.replace(/^variable\./i, "").trim();
+            this.destRefKind = "variable";
+            this.currentDestField = { tipo: "variable" };
         }
 
         // Rellenar referencia destino
@@ -870,23 +964,44 @@ const LetManager = {
         if (this.refSelect) {
             this.refSelect.value = "";
         }
+        if (this.refTargetSelect) {
+            this.refTargetSelect.value = this.destRefKind;
+        }
         this.currentDestField = null;
+
+        // Ajustar opciones según el tipo de destino detectado
+        this.populateRefSelect();
 
         // Intentar casar con un tesauro destino
         let destFieldIndex = -1;
-        for (let i = 0; i < this.tesauroFields.length; i++) {
-            if (this.tesauroFields[i].ref === destRef) {
-                destFieldIndex = i;
-                break;
+        let destVariableIndex = -1;
+        if (this.destRefKind === "variable") {
+            destVariableIndex = this.definitionVars.findIndex((v) => v.ref === destRef);
+        }
+        if (this.destRefKind !== "variable") {
+            for (let i = 0; i < this.tesauroFields.length; i++) {
+                if (this.tesauroFields[i].ref === destRef) {
+                    destFieldIndex = i;
+                    break;
+                }
             }
         }
-        if (destFieldIndex >= 0 && this.refSelect) {
-            this.refSelect.value = String(destFieldIndex);
-            const field = this.tesauroFields[destFieldIndex];
-            this.currentDestField = field;
-            if (this.refInput) {
-                this.refInput.value = field.ref || destRef;
-                this.refInput.disabled = true;
+        if (this.refSelect) {
+            if (destVariableIndex >= 0 && this.destRefKind === "variable") {
+                this.refSelect.value = String(destVariableIndex);
+                this.currentDestField = { tipo: "variable" };
+                if (this.refInput) {
+                    this.refInput.value = destRef;
+                    this.refInput.disabled = true;
+                }
+            } else if (destFieldIndex >= 0) {
+                this.refSelect.value = String(destFieldIndex);
+                const field = this.tesauroFields[destFieldIndex];
+                this.currentDestField = field;
+                if (this.refInput) {
+                    this.refInput.value = field.ref || destRef;
+                    this.refInput.disabled = true;
+                }
             }
         }
 
@@ -913,6 +1028,7 @@ const LetManager = {
 
         // Ajustar UI (booleana / numérica según destino)
         this.updateFormulaUIForDestType();
+        this.updateRefHint();
     },
 
     /* =======================================
@@ -932,13 +1048,15 @@ const LetManager = {
         this.currentDestField = null;
         this.tokenMap = {};
         this.definitionVars = [];
+        this.destRefKind = "personalized";
 
         // Construir tesauros + alias (rellena tokenMap)
         this.buildTesauroFields();
-        this.populateRefSelect();
 
         // Construir variables definition (también añade a tokenMap)
         this.buildDefinitionVars();
+
+        this.populateRefSelect();
 
         // ¿Hay un LET bajo el cursor/selección?
         const text = ta.value || "";
@@ -967,12 +1085,16 @@ const LetManager = {
         if (this.refSelect) {
             this.refSelect.value = "";
         }
+        if (this.refTargetSelect) {
+            this.refTargetSelect.value = this.destRefKind;
+        }
         if (this.formulaInput) {
             this.formulaInput.value = "";
             this.formulaInput.disabled = false;
         }
         if (this.zeroIfNullInput) this.zeroIfNullInput.checked = false;
         if (this.decimalsInput)   this.decimalsInput.value = "";
+        this.updateRefHint();
         // Si estamos editando un LET → precargar datos
         if (isEditing) {
             this.prefillFromExistingLet(existingLet);
@@ -1034,6 +1156,13 @@ const LetManager = {
         return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     },
 
+    updateRefHint() {
+        if (!this.refHint) return;
+        const prefix = this.destRefKind === "variable" ? "variable." : "personalized.";
+        this.refHint.innerHTML =
+            "Se insertará como <code>" + prefix + "&lt;referencia&gt;</code>.";
+    },
+
     // Sustituir alias por personalized.REF / variable.REF
     replaceTokenAliases(formula) {
         if (!this.tokenMap || !Object.keys(this.tokenMap).length) return formula;
@@ -1063,19 +1192,41 @@ const LetManager = {
         let refRaw = this.refInput.value || "";
         refRaw = refRaw.trim();
 
+        let destKind = this.destRefKind === "variable" ? "variable" : "personalized";
+
+        if (/^personalized\./i.test(refRaw)) {
+            destKind = "personalized";
+            refRaw = refRaw.replace(/^personalized\./i, "").trim();
+        } else if (/^variable\./i.test(refRaw)) {
+            destKind = "variable";
+            refRaw = refRaw.replace(/^variable\./i, "").trim();
+        }
+
         if (!refRaw) {
             alert("Debes indicar una referencia destino.");
             return;
         }
 
         const refSan = this.sanitizeId(refRaw, "MiCampoResultado");
-        const fullRef = "personalized." + refSan;
+        const fullRef = destKind + "." + refSan;
+
+        this.destRefKind = destKind;
+        if (this.refTargetSelect) {
+            this.refTargetSelect.value = destKind;
+        }
+        if (destKind === "variable" && !this.currentDestField) {
+            this.currentDestField = { tipo: "variable" };
+        }
 
         let formula = this.formulaInput.value || "";
         formula = formula.trim();
 
         const destField = this.currentDestField || null;
-        const destType  = destField && destField.tipo ? String(destField.tipo) : null;
+        const destType  = destKind === "variable"
+            ? "variable"
+            : destField && destField.tipo
+                ? String(destField.tipo)
+                : null;
 
         // si_no → si/sí/no → true/false
         if (destType === "si_no") {

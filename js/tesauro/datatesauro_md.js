@@ -531,6 +531,9 @@ const DataTesauro = {
             this.quickCreateRefInput.value = ref;
         }
 
+        ref = this.limitReferenceLength(ref);
+        this.quickCreateRefInput.value = ref;
+
         if (!ref) {
             alert("No se pudo generar una referencia válida.");
             return;
@@ -636,6 +639,12 @@ const DataTesauro = {
         if (!str) return "";
         return String(str).replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     },
+    limitReferenceLength(ref, max = 40) {
+        if (!ref) return "";
+        const normalized = String(ref).trim();
+        if (normalized.length <= max) return normalized;
+        return normalized.slice(0, max);
+    },
 // ⭐ NUEVO: generador de referencias con inversión + SiNo siempre al final
 generarReferenciaDesdeNombre(nombre) {
     if (!nombre) return "";
@@ -709,7 +718,7 @@ generarReferenciaDesdeNombre(nombre) {
         })
         .join("");
 
-    return camel;
+    return this.limitReferenceLength(camel);
 }
 
 
