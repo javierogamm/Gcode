@@ -20,10 +20,12 @@ const TesauroManager = {
     btnOpenRefPopup: null,
     btnOpenPlainImport: null,   // botón importar texto
     btnOpenMdImport: null,      // *** NUEVO: botón importar desde markdown
+    btnOpenCsvImport: null,
     refModal: null,
 
     importModal: null,          // popup importar texto
     markdownImportModal: null,  // *** NUEVO: popup importar markdown
+    csvImportModal: null,
 
     // modal exportar Tesauro (3 CSV)
     exportModal: null,
@@ -141,6 +143,18 @@ const TesauroManager = {
                 font-weight:bold;
             ">
                 📥 Importar tesauros (texto)
+            </button>
+
+            <button id="tmOpenCsvImport" style="
+                flex:1;
+                background:#f0f9ff;
+                border:1px solid #0284c7;
+                border-radius:6px;
+                padding:10px;
+                cursor:pointer;
+                font-weight:bold;
+            ">
+                📂 Importar desde CSV
             </button>
 
             <!-- *** NUEVO: Importar tesauros desde Markdown -->
@@ -324,6 +338,7 @@ const TesauroManager = {
         this.btnSave = div.querySelector("#tmSave");
         this.btnOpenRefPopup = div.querySelector("#tmOpenRefPopup");
         this.btnOpenPlainImport = div.querySelector("#tmOpenPlainImport");
+        this.btnOpenCsvImport = div.querySelector("#tmOpenCsvImport");
         this.btnOpenMdImport = div.querySelector("#tmOpenMdImport");  // *** NUEVO
         this.exportModal = div.querySelector("#tmExportModal");
 
@@ -344,6 +359,10 @@ const TesauroManager = {
         // Abrir popup de importación desde texto
         if (this.btnOpenPlainImport) {
             this.btnOpenPlainImport.addEventListener("click", () => this.openPlainImportPopup());
+        }
+
+        if (this.btnOpenCsvImport) {
+            this.btnOpenCsvImport.addEventListener("click", () => this.openCsvImportPopup());
         }
 
         // *** NUEVO: abrir popup de importación desde Markdown
@@ -818,6 +837,271 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
     },
 
     /* ============================================================
+       POPUP IMPORTAR TESAUROS DESDE CSV (formato exportación)
+    ============================================================ */
+    openCsvImportPopup() {
+        if (this.csvImportModal) {
+            this.csvImportModal.style.display = "flex";
+            return;
+        }
+
+        const div = document.createElement("div");
+        div.style.position = "fixed";
+        div.style.inset = "0";
+        div.style.background = "rgba(0,0,0,0.45)";
+        div.style.zIndex = "999999";
+        div.style.display = "flex";
+        div.style.alignItems = "center";
+        div.style.justifyContent = "center";
+
+        div.innerHTML = `
+            <div style="
+                background:white;
+                width:720px;
+                max-width:95%;
+                padding:20px;
+                border-radius:12px;
+                box-shadow:0 4px 20px rgba(0,0,0,0.35);
+                display:flex;
+                flex-direction:column;
+                gap:10px;
+                max-height:80vh;
+            ">
+                <h2 style="margin:0 0 4px 0; text-align:center;">📂 Importar tesauros desde CSV</h2>
+                <p style="margin:0; font-size:13px; color:#4b5563;">
+                    Sube los CSV generados por el exportador (Tesauro.csv obligatorio,
+                    Tesauro_Valores.csv y Vinculacion_Tesauros.csv opcionales). Se combinarán
+                    las referencias existentes con los datos importados.
+                </p>
+
+                <label style="font-size:13px; color:#0f172a; font-weight:bold;">Tesauro.csv *</label>
+                <input id="tmCsvFileMain" type="file" accept=".csv" style="padding:6px; border:1px solid #cbd5e1; border-radius:6px;">
+
+                <label style="font-size:13px; color:#0f172a; font-weight:bold;">Tesauro_Valores.csv (opcional)</label>
+                <input id="tmCsvFileValores" type="file" accept=".csv" style="padding:6px; border:1px solid #cbd5e1; border-radius:6px;">
+
+                <label style="font-size:13px; color:#0f172a; font-weight:bold;">Vinculacion_Tesauros.csv (opcional)</label>
+                <input id="tmCsvFileVinc" type="file" accept=".csv" style="padding:6px; border:1px solid #cbd5e1; border-radius:6px;">
+
+                <div style="display:flex; gap:10px; margin-top:8px;">
+                    <button id="tmCsvCancel" style="
+                        flex:1; background:#f1f5f9; border:1px solid #cbd5e1;
+                        padding:8px; border-radius:6px; cursor:pointer;
+                    ">Cancelar</button>
+
+                    <button id="tmCsvImport" style="
+                        flex:1; background:#0f766e; color:white;
+                        border:none; padding:8px; border-radius:6px;
+                        cursor:pointer; font-weight:bold;
+                    ">Importar CSV</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(div);
+        this.csvImportModal = div;
+
+        const btnCancel = div.querySelector("#tmCsvCancel");
+        const btnImport = div.querySelector("#tmCsvImport");
+
+        if (btnCancel) {
+            btnCancel.addEventListener("click", () => {
+                this.csvImportModal.style.display = "none";
+            });
+        }
+
+        if (btnImport) {
+            btnImport.addEventListener("click", () => this.handleCsvImport());
+        }
+    },
+
+    async handleCsvImport() {
+        if (!this.csvImportModal) return;
+
+        const mainInput = this.csvImportModal.querySelector("#tmCsvFileMain");
+        if (!mainInput || !mainInput.files?.length) {
+            alert("Selecciona el archivo Tesauro.csv exportado.");
+            return;
+        }
+
+        const valoresInput = this.csvImportModal.querySelector("#tmCsvFileValores");
+        const vincInput = this.csvImportModal.querySelector("#tmCsvFileVinc");
+
+        try {
+            const mainText = await this.readFileAsText(mainInput.files[0]);
+            const valoresText = valoresInput?.files?.length ? await this.readFileAsText(valoresInput.files[0]) : "";
+            const vincText = vincInput?.files?.length ? await this.readFileAsText(vincInput.files[0]) : "";
+
+            const campos = this.parseTesauroCsv(mainText);
+            if (!campos.length) {
+                alert("No se ha podido leer ningún tesauro desde Tesauro.csv.");
+                return;
+            }
+
+            const valoresMap = valoresText ? this.parseTesauroValoresCsv(valoresText) : new Map();
+            const vincMap = vincText ? this.parseVinculacionCsv(vincText) : new Map();
+
+            campos.forEach(c => {
+                const key = (c.ref || "").toLowerCase();
+                if (c.tipo === "selector" && valoresMap.has(key)) {
+                    c.opciones = valoresMap.get(key);
+                }
+
+                if (vincMap.has(key)) {
+                    const vinc = vincMap.get(key);
+                    c.momento = vinc.momento || c.momento;
+                    c.agrupacion = vinc.agrupacion || c.agrupacion;
+                }
+
+                if (!c.momento) c.momento = "Solicitud";
+                if (!c.agrupacion) c.agrupacion = "Agrupación";
+                if (c.tipo === "selector" && !Array.isArray(c.opciones)) {
+                    c.opciones = [];
+                }
+            });
+
+            this.mergeImportedCampos(campos);
+            this.render();
+
+            alert(`✔ Importados/actualizados ${campos.length} tesauros desde CSV.`);
+            this.csvImportModal.style.display = "none";
+        } catch (err) {
+            console.error(err);
+            alert("No se pudieron leer los CSV importados. Comprueba el formato.");
+        }
+    },
+
+    readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result || "");
+            reader.onerror = () => reject(reader.error || new Error("No se pudo leer el archivo"));
+            reader.readAsText(file);
+        });
+    },
+
+    parseCsvRows(texto) {
+        if (!texto) return [];
+        return texto
+            .replace(/\r/g, "")
+            .split(/\n+/)
+            .map(l => l.trim())
+            .filter(Boolean)
+            .map(line => line.split(";").map(v => v.trim()));
+    },
+
+    normalizeCsvHeader(h) {
+        let t = (h || "").toString().trim().toLowerCase();
+        if (t.normalize) {
+            t = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        }
+        return t;
+    },
+
+    mapTipoFromExportTipo(t) {
+        const norm = this.normalizeCsvHeader(t);
+        if (norm.includes("selector")) return "selector";
+        if (norm.includes("si/no")) return "si_no";
+        if (norm.includes("numero")) return "numero";
+        if (norm.includes("moneda")) return "moneda";
+        if (norm.includes("fecha")) return "fecha";
+        return "texto";
+    },
+
+    parseTesauroCsv(texto) {
+        const rows = this.parseCsvRows(texto);
+        if (!rows.length) return [];
+
+        const header = rows.shift().map(h => this.normalizeCsvHeader(h));
+        const idx = {
+            ref: header.findIndex(h => h.includes("referencia")),
+            nombre: header.findIndex(h => h.includes("nombre castellano")),
+            tipo: header.findIndex(h => h.includes("tipo de campo")),
+            momento: header.findIndex(h => h.includes("momento de captura")),
+            agrupacion: header.findIndex(h => h.includes("agrupacion"))
+        };
+
+        if (idx.ref < 0 || idx.nombre < 0 || idx.tipo < 0) return [];
+
+        return rows.map(parts => {
+            const ref = (parts[idx.ref] || "").trim();
+            if (!ref) return null;
+
+            const nombre = (parts[idx.nombre] || "").trim();
+            const tipo = this.mapTipoFromExportTipo(parts[idx.tipo]);
+            const momento = idx.momento >= 0 ? (parts[idx.momento] || "").trim() : "";
+            const agrupacion = idx.agrupacion >= 0 ? (parts[idx.agrupacion] || "").trim() : "";
+
+            return {
+                id: (typeof DataTesauro.generateId === "function") ? DataTesauro.generateId() : TesauroManager.generateId(),
+                ref,
+                nombre,
+                tipo,
+                opciones: [],
+                momento,
+                agrupacion
+            };
+        }).filter(Boolean);
+    },
+
+    parseTesauroValoresCsv(texto) {
+        const rows = this.parseCsvRows(texto);
+        if (!rows.length) return new Map();
+
+        const header = rows.shift().map(h => this.normalizeCsvHeader(h));
+        const idxTesauro = header.findIndex(h => h.includes("referencia tesauro"));
+        const idxRef = header.findIndex(h => h.includes("referencia i18n"));
+        const idxValor = header.findIndex(h => h === "valor" || h.includes("valor"));
+
+        if (idxTesauro < 0 || idxValor < 0) return new Map();
+
+        const mapa = new Map();
+        rows.forEach(parts => {
+            const refTesauro = (parts[idxTesauro] || "").trim();
+            const valor = (parts[idxValor] || "").trim();
+            if (!refTesauro || !valor) return;
+
+            const refOpt = idxRef >= 0 ? (parts[idxRef] || "").trim() : "";
+
+            const key = refTesauro.toLowerCase();
+            const arr = mapa.get(key) || [];
+            arr.push({
+                id: (typeof DataTesauro.generateId === "function") ? DataTesauro.generateId() : TesauroManager.generateId(),
+                ref: refOpt || valor,
+                valor
+            });
+            mapa.set(key, arr);
+        });
+
+        return mapa;
+    },
+
+    parseVinculacionCsv(texto) {
+        const rows = this.parseCsvRows(texto);
+        if (!rows.length) return new Map();
+
+        const header = rows.shift().map(h => this.normalizeCsvHeader(h));
+        const idxRef = header.findIndex(h => h.includes("referencia"));
+        const idxMomento = header.findIndex(h => h.includes("momento de captura"));
+        const idxAgr = header.findIndex(h => h.includes("agrupacion"));
+
+        if (idxRef < 0) return new Map();
+
+        const mapa = new Map();
+        rows.forEach(parts => {
+            const ref = (parts[idxRef] || "").trim();
+            if (!ref) return;
+
+            mapa.set(ref.toLowerCase(), {
+                momento: idxMomento >= 0 ? (parts[idxMomento] || "").trim() : "",
+                agrupacion: idxAgr >= 0 ? (parts[idxAgr] || "").trim() : ""
+            });
+        });
+
+        return mapa;
+    },
+
+    /* ============================================================
        POPUP REFERENCIAR TESAUROS
     ============================================================ */
     openRefPopup() {
@@ -962,10 +1246,11 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
                 ? DataTesauro.generarReferenciaDesdeNombre(nombre)
                 : nombre.replace(/\s+/g, "_");
 
-            input.value = refSugerida;
+            const refAcotada = this.limitReferenceLength(refSugerida);
+            input.value = refAcotada;
 
             // si ya existe esa referencia → marcar en rojo
-            if (existentes.has(refSugerida.toLowerCase())) {
+            if (existentes.has(refAcotada.toLowerCase())) {
                 input.style.background = "#fee2e2";
             }
 
@@ -1752,6 +2037,13 @@ row.appendChild(tdDel);
         return "texto";
     },
 
+    limitReferenceLength(ref) {
+        if (window.DataTesauro && typeof DataTesauro.limitReferenceLength === "function") {
+            return DataTesauro.limitReferenceLength(ref);
+        }
+        return (ref || "").toString().trim().slice(0, 40);
+    },
+
     mergeImportedCampos(nuevos) {
         if (!window.DataTesauro) return;
         const actuales = DataTesauro.campos || [];
@@ -1977,15 +2269,19 @@ row.appendChild(tdDel);
             ref = nombre.trim().replace(/\s+/g, "");
         }
 
+        ref = this.limitReferenceLength(ref);
+
         // Evitar refs duplicadas
         const existentes = new Set(
             lista.map(c => (c.ref || "").toLowerCase())
         );
-        let refBase = ref || "nuevoCampo";
+        let refBase = this.limitReferenceLength(ref || "nuevoCampo");
         let refFinal = refBase;
         let idx = 1;
         while (existentes.has(refFinal.toLowerCase())) {
-            refFinal = refBase + idx++;
+            const suf = String(idx++);
+            const baseRecortada = refBase.slice(0, Math.max(1, 40 - suf.length));
+            refFinal = baseRecortada + suf;
         }
 
         const nuevo = {
