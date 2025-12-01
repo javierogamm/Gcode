@@ -114,11 +114,11 @@ const LetManager = {
         div.innerHTML = `
             <div style="
                 background:white;
-                padding:18px 20px;
-                border-radius:10px;
-                box-shadow:0 4px 16px rgba(0,0,0,0.3);
-                width:860px;
-                max-width:96%;
+                padding:22px 24px;
+                border-radius:12px;
+                box-shadow:0 8px 28px rgba(0,0,0,0.28);
+                width:1140px;
+                max-width:98%;
                 font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
                 font-size:14px;
             ">
@@ -134,27 +134,29 @@ const LetManager = {
                     y variables <code>{{definition}}</code> de tipo <strong>numeric</strong>.
                 </p>
 
-                <div style="display:flex; gap:14px; align-items:flex-start;">
+                <div style="display:flex; gap:18px; align-items:flex-start;">
                     <!-- Columna izquierda: referencia + fórmula -->
-                    <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+                    <div style="flex:1; display:flex; flex-direction:column; gap:10px; min-width:0;">
                         <div>
                             <span style="display:block; font-size:12px; color:#6b7280; margin-bottom:3px;">
                                 Referencia destino (personalized.REF / variable.REF)
                             </span>
-                            <div style="display:flex; gap:6px;">
+                            <div style="display:flex; gap:10px; width:100%;">
                                 <select id="letRefSelect" style="
                                     flex:1;
-                                    padding:5px 6px;
-                                    border-radius:6px;
+                                    padding:7px 8px;
+                                    border-radius:8px;
                                     border:1px solid #cbd5e1;
-                                    font-size:12px;
+                                    font-size:13px;
+                                    min-width:0;
                                 "></select>
                                 <select id="letRefTarget" style="
-                                    width:190px;
-                                    padding:5px 6px;
-                                    border-radius:6px;
+                                    min-width:240px;
+                                    max-width:320px;
+                                    padding:7px 8px;
+                                    border-radius:8px;
                                     border:1px solid #cbd5e1;
-                                    font-size:12px;
+                                    font-size:13px;
                                 ">
                                     <option value="personalized">Tesauro (personalized.)</option>
                                     <option value="variable">Variable (variable.)</option>
@@ -163,10 +165,10 @@ const LetManager = {
                             <input id="letRefInput" type="text" placeholder="MiCampoResultado" style="
                                 margin-top:6px;
                                 width:100%;
-                                padding:5px 7px;
-                                border-radius:6px;
+                                padding:8px 10px;
+                                border-radius:8px;
                                 border:1px solid #cbd5e1;
-                                font-size:13px;
+                                font-size:14px;
                             ">
                             <p id="letRefHint" style="font-size:11px; color:#9ca3af; margin:4px 0 0 0;">
                                 Se insertará como <code>personalized.&lt;referencia&gt;</code>.
@@ -177,50 +179,50 @@ const LetManager = {
                             <span style="display:block; font-size:12px; color:#6b7280; margin-bottom:3px;">
                                 Fórmula (result)
                             </span>
-                            <textarea id="letFormulaInput" rows="4" style="
+                            <textarea id="letFormulaInput" rows="6" style="
                                 width:100%;
-                                padding:6px 8px;
-                                border-radius:6px;
+                                padding:10px 12px;
+                                border-radius:8px;
                                 border:1px solid #cbd5e1;
-                                font-size:13px;
+                                font-size:14px;
                                 font-family:Consolas,monospace;
                                 resize:vertical;
                             "></textarea>
 
                             <!-- Barra de operadores rápidos -->
                             <div id="letOpBar" style="
-                                margin-top:6px;
+                                margin-top:8px;
                                 display:flex;
                                 flex-wrap:wrap;
-                                gap:4px;
+                                gap:6px;
                                 align-items:center;
-                                font-size:11px;
+                                font-size:12px;
                                 color:#6b7280;
                             ">
                                 <span>Operadores rápidos:</span>
                                 <button type="button" data-op="+" style="
-                                    padding:2px 6px;
+                                    padding:4px 8px;
                                     border-radius:999px;
                                     border:1px solid #cbd5e1;
                                     background:#f9fafb;
                                     cursor:pointer;
                                 ">+</button>
                                 <button type="button" data-op="-" style="
-                                    padding:2px 6px;
+                                    padding:4px 8px;
                                     border-radius:999px;
                                     border:1px solid #cbd5e1;
                                     background:#f9fafb;
                                     cursor:pointer;
                                 ">-</button>
                                 <button type="button" data-op="*" style="
-                                    padding:2px 6px;
+                                    padding:4px 8px;
                                     border-radius:999px;
                                     border:1px solid #cbd5e1;
                                     background:#f9fafb;
                                     cursor:pointer;
                                 ">*</button>
                                 <button type="button" data-op="/" style="
-                                    padding:2px 6px;
+                                    padding:4px 8px;
                                     border-radius:999px;
                                     border:1px solid #cbd5e1;
                                     background:#f9fafb;
@@ -228,7 +230,7 @@ const LetManager = {
                                 ">/</button>
                                 <!-- *** CAMBIO: botón de paréntesis ahora es "()" y se ha eliminado el botón separado de ")" -->
                                 <button type="button" data-op="()" style="
-                                    padding:2px 6px;
+                                    padding:4px 8px;
                                     border-radius:999px;
                                     border:1px solid #cbd5e1;
                                     background:#f9fafb;
@@ -240,23 +242,23 @@ const LetManager = {
 
                             <!-- Atajos SI / NO -->
                             <div id="letBoolBar" style="
-                                margin-top:6px;
+                                margin-top:8px;
                                 display:flex;
                                 align-items:center;
-                                gap:4px;
-                                font-size:11px;
+                                gap:8px;
+                                font-size:12px;
                                 color:#6b7280;
                             ">
                                 <span>Atajos sí/no:</span>
                                 <button type="button" data-bool="si" style="
-                                    padding:2px 8px;
+                                    padding:4px 10px;
                                     border-radius:999px;
                                     border:1px solid #cbd5e1;
                                     background:#f9fafb;
                                     cursor:pointer;
                                 ">SI</button>
                                 <button type="button" data-bool="no" style="
-                                    padding:2px 8px;
+                                    padding:4px 10px;
                                     border-radius:999px;
                                     border:1px solid #cbd5e1;
                                     background:#f9fafb;
@@ -274,7 +276,7 @@ const LetManager = {
                     </div>
 
                     <!-- Columna derecha: tesauros + variables -->
-                    <div style="width:260px; border-left:1px solid #e5e7eb; padding-left:12px;">
+                    <div style="width:320px; border-left:1px solid #e5e7eb; padding-left:14px; flex-shrink:0;">
                         <h3 style="margin:0 0 6px 0; font-size:13px; color:#111827;">
                             Tesauros para usar en la fórmula
                         </h3>
@@ -284,39 +286,39 @@ const LetManager = {
                         </p>
                         <input id="letTesauroSearch" type="text" placeholder="Buscar por nombre o referencia..." style="
                                 width:100%;
-                                margin:0 0 6px 0;
-                                padding:4px 6px;
-                                border-radius:6px;
+                                margin:0 0 8px 0;
+                                padding:7px 8px;
+                                border-radius:8px;
                                 border:1px solid #cbd5e1;
-                                font-size:12px;
+                                font-size:13px;
                             ">
                             <div id="letTesauroList" style="
-                            max-height:160px;
-                            min-height:160px;
+                            max-height:220px;
+                            min-height:220px;
                             overflow:auto;
-                            border-radius:6px;
+                            border-radius:8px;
                             border:1px solid #e5e7eb;
                             background:#f9fafb;
-                            padding:4px;
+                            padding:6px;
                             font-size:12px;
                         "></div>
 
-                        <div style="margin-top:10px; padding-top:8px; border-top:1px dashed #e5e7eb;"></div>
+                        <div style="margin-top:12px; padding-top:10px; border-top:1px dashed #e5e7eb;"></div>
 
                         <h3 style="margin:8px 0 4px 0; font-size:13px; color:#111827;">
                             Variables (definition, numeric)
                         </h3>
-                        <p style="margin:0 0 6px 0; font-size:11px; color:#6b7280;">
+                        <p style="margin:0 0 8px 0; font-size:11px; color:#6b7280;">
                             Clic para insertar la <strong>referencia</strong> de la variable
                             (en el código será <code>variable.REF</code>).
                         </p>
                         <div id="letDefinitionList" style="
-                            max-height:120px;
+                            max-height:180px;
                             overflow:auto;
                             border-radius:6px;
                             border:1px solid #dbeafe;
                             background:#eff6ff;
-                            padding:4px;
+                            padding:6px;
                             font-size:12px;
                         "></div>
                     </div>
@@ -337,23 +339,23 @@ const LetManager = {
                             style="width:60px; padding:4px 6px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
                     </label>
                 </div>
-                <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:8px;">
+                <div style="margin-top:18px; display:flex; justify-content:flex-end; gap:10px;">
                     <button id="letCancelBtn" type="button" style="
-                        padding:7px 12px;
-                        border-radius:6px;
+                        padding:9px 14px;
+                        border-radius:8px;
                         border:1px solid #e5e7eb;
                         background:#f3f4f6;
-                        font-size:13px;
+                        font-size:14px;
                         cursor:pointer;
                     ">Cancelar</button>
 
                     <button id="letOkBtn" type="button" style="
-                        padding:7px 14px;
-                        border-radius:6px;
+                        padding:9px 16px;
+                        border-radius:8px;
                         border:none;
                         background:#1d4ed8;
                         color:white;
-                        font-size:13px;
+                        font-size:14px;
                         cursor:pointer;
                         font-weight:500;
                     ">Insertar LET</button>

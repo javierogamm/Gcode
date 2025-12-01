@@ -85,11 +85,11 @@ const Sections = {
         div.innerHTML = `
             <div style="
                 background:white;
-                padding:18px 20px;
-                border-radius:10px;
-                box-shadow:0 4px 16px rgba(0,0,0,0.3);
-                width:820px;
-                max-width:95%;
+                padding:22px 24px;
+                border-radius:12px;
+                box-shadow:0 8px 28px rgba(0,0,0,0.28);
+                width:1080px;
+                max-width:98%;
                 font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
                 font-size:14px;
             ">
@@ -97,17 +97,17 @@ const Sections = {
                     Crear sección con grupos de condiciones
                 </h2>
 
-                <div style="display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; flex-direction:column; gap:12px;">
                     <label>
                         <span style="display:block; font-size:12px; color:#6b7280; margin-bottom:2px;">
                             Nombre de la sección (identificador)
                         </span>
                         <input id="secNameInput" type="text" placeholder="MiSeccion" style="
                             width:100%;
-                            padding:6px 8px;
-                            border-radius:6px;
+                            padding:9px 10px;
+                            border-radius:8px;
                             border:1px solid #cbd5e1;
-                            font-size:13px;
+                            font-size:14px;
                         ">
                     </label>
 
@@ -121,19 +121,20 @@ const Sections = {
                             flex-direction:column;
                             gap:8px;
                             margin-bottom:6px;
-                            max-height:300px;
+                            max-height:420px;
                             overflow:auto;
-                            padding-right:4px;
+                            padding-right:8px;
                         "></div>
 
                         <button id="secAddGroupBtn" type="button" style="
                             border:none;
-                            border-radius:6px;
-                            padding:7px 12px;
-                            font-size:12px;
+                            border-radius:8px;
+                            padding:9px 14px;
+                            font-size:13px;
                             background:#e0f2fe;
                             color:#0369a1;
                             cursor:pointer;
+                            width:100%;
                         ">
                             ➕ Añadir grupo de condiciones
                         </button>
@@ -145,23 +146,23 @@ const Sections = {
                     </div>
                 </div>
 
-                <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:8px;">
+                <div style="margin-top:18px; display:flex; justify-content:flex-end; gap:10px;">
                     <button id="secCancelBtn" type="button" style="
-                        padding:7px 12px;
-                        border-radius:6px;
+                        padding:9px 14px;
+                        border-radius:8px;
                         border:1px solid #e5e7eb;
                         background:#f3f4f6;
-                        font-size:13px;
+                        font-size:14px;
                         cursor:pointer;
                     ">Cancelar</button>
 
                     <button id="secOkBtn" type="button" style="
-                        padding:7px 14px;
-                        border-radius:6px;
+                        padding:9px 16px;
+                        border-radius:8px;
                         border:none;
                         background:#2563eb;
                         color:white;
-                        font-size:13px;
+                        font-size:14px;
                         cursor:pointer;
                         font-weight:500;
                     ">Insertar sección</button>

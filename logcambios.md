@@ -1,5 +1,8 @@
 # Log de cambios
 
+## v1.2.2 - 2024-06-16
+- Se ampliaron los modales de LET y Sections para ofrecer más espacio de trabajo y se ajustaron sus controles para ocupar el ancho disponible.
+
 ## v1.2.1 - 2024-06-15
 - El selector de referencia del modal LET muestra las variables creadas al elegir "Variable" como destino y permite reutilizarlas directamente.
 
