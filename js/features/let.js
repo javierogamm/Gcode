@@ -573,16 +573,39 @@ const LetManager = {
 
         const optNone = document.createElement("option");
         optNone.value = "";
+        optNone.dataset.kind = "manual";
         optNone.textContent = "— Referencia manual —";
         this.refSelect.appendChild(optNone);
 
-        this.tesauroFields.forEach(function (c, idx) {
+        const isVariableTarget = this.destRefKind === "variable";
+        const sourceList = isVariableTarget ? this.definitionVars : this.tesauroFields;
+
+        if (!sourceList.length) {
+            const empty = document.createElement("option");
+            empty.value = "";
+            empty.dataset.kind = isVariableTarget ? "variable" : "tesauro";
+            empty.textContent = isVariableTarget
+                ? "(sin variables numeric definidas)"
+                : "(sin tesauros numéricos disponibles)";
+            empty.disabled = true;
+            this.refSelect.appendChild(empty);
+            return;
+        }
+
+        sourceList.forEach(function (item, idx) {
             const o = document.createElement("option");
             o.value = String(idx);
-            const nombre = c.nombre || c.ref || "(sin nombre)";
-            const ref = c.ref || "";
-            const tipo = c.tipo || "";
-            o.textContent = `${nombre} (${ref}) [${tipo}]`;
+            o.dataset.kind = isVariableTarget ? "variable" : "tesauro";
+
+            if (isVariableTarget) {
+                o.textContent = `${item.ref} [variable]`;
+            } else {
+                const nombre = item.nombre || item.ref || "(sin nombre)";
+                const ref = item.ref || "";
+                const tipo = item.tipo || "";
+                o.textContent = `${nombre} (${ref}) [${tipo}]`;
+            }
+
             this.refSelect.appendChild(o);
         }, this);
     },
@@ -792,10 +815,16 @@ const LetManager = {
         if (!this.refSelect || !this.refInput) return;
 
         const idxStr = this.refSelect.value;
+        const selectedOption = this.refSelect.options[this.refSelect.selectedIndex];
+        const selectedKind = selectedOption ? selectedOption.dataset.kind : null;
 
-        this.currentDestField = this.destRefKind === "variable" ? { tipo: "variable" } : null;
-
-        if (idxStr) {
+        this.currentDestField = null;
+        if (selectedKind === "variable") {
+            this.destRefKind = "variable";
+            if (this.refTargetSelect) {
+                this.refTargetSelect.value = "variable";
+            }
+        } else if (selectedKind === "tesauro") {
             this.destRefKind = "personalized";
             if (this.refTargetSelect) {
                 this.refTargetSelect.value = "personalized";
@@ -810,7 +839,8 @@ const LetManager = {
         }
 
         const idx = parseInt(idxStr, 10);
-        const field = this.tesauroFields[idx];
+        const sourceList = selectedKind === "variable" ? this.definitionVars : this.tesauroFields;
+        const field = sourceList[idx];
 
         if (!field) {
             this.refInput.disabled = false;
@@ -823,7 +853,7 @@ const LetManager = {
         this.refInput.value = ref;
         this.refInput.disabled = true;
 
-        this.currentDestField = field;
+        this.currentDestField = selectedKind === "variable" ? { tipo: "variable" } : field;
         this.updateFormulaUIForDestType();
         this.updateRefHint();
     },
@@ -847,6 +877,7 @@ const LetManager = {
             this.currentDestField = null;
         }
 
+        this.populateRefSelect();
         this.updateFormulaUIForDestType();
         this.updateRefHint();
     },
@@ -936,8 +967,15 @@ const LetManager = {
         }
         this.currentDestField = null;
 
+        // Ajustar opciones según el tipo de destino detectado
+        this.populateRefSelect();
+
         // Intentar casar con un tesauro destino
         let destFieldIndex = -1;
+        let destVariableIndex = -1;
+        if (this.destRefKind === "variable") {
+            destVariableIndex = this.definitionVars.findIndex((v) => v.ref === destRef);
+        }
         if (this.destRefKind !== "variable") {
             for (let i = 0; i < this.tesauroFields.length; i++) {
                 if (this.tesauroFields[i].ref === destRef) {
@@ -946,13 +984,22 @@ const LetManager = {
                 }
             }
         }
-        if (destFieldIndex >= 0 && this.refSelect) {
-            this.refSelect.value = String(destFieldIndex);
-            const field = this.tesauroFields[destFieldIndex];
-            this.currentDestField = field;
-            if (this.refInput) {
-                this.refInput.value = field.ref || destRef;
-                this.refInput.disabled = true;
+        if (this.refSelect) {
+            if (destVariableIndex >= 0 && this.destRefKind === "variable") {
+                this.refSelect.value = String(destVariableIndex);
+                this.currentDestField = { tipo: "variable" };
+                if (this.refInput) {
+                    this.refInput.value = destRef;
+                    this.refInput.disabled = true;
+                }
+            } else if (destFieldIndex >= 0) {
+                this.refSelect.value = String(destFieldIndex);
+                const field = this.tesauroFields[destFieldIndex];
+                this.currentDestField = field;
+                if (this.refInput) {
+                    this.refInput.value = field.ref || destRef;
+                    this.refInput.disabled = true;
+                }
             }
         }
 
@@ -1003,10 +1050,11 @@ const LetManager = {
 
         // Construir tesauros + alias (rellena tokenMap)
         this.buildTesauroFields();
-        this.populateRefSelect();
 
         // Construir variables definition (también añade a tokenMap)
         this.buildDefinitionVars();
+
+        this.populateRefSelect();
 
         // ¿Hay un LET bajo el cursor/selección?
         const text = ta.value || "";
