@@ -1,3 +1,5 @@
 TO DO:
 referencias tesauros too long
 Asignaciones le mete --
+Edit Sections
+import CSV completo
