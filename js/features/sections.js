@@ -5,8 +5,8 @@
    - Botón "Sections" en la toolbar
    - Grupos de condiciones (CONDICIÓN 1, 2, ...) con AND / OR
    - Cada grupo tiene subcondiciones (1.1, 1.2, ...) con AND / OR
-   - Comparador por defecto para texto/selector/si_no: DISTINTO A → "!=",
-     pero ahora puede elegirse "==" en un desplegable.
+   - Comparador por defecto para texto/selector/si_no: IGUAL A → "==",
+     ajustable en el desplegable.
    - Tesauros numéricos o moneda:
        · valor numérico
        · operadores: >, <, >=, <=
@@ -742,7 +742,7 @@ if (this.nameInput) {
                 opSelect.appendChild(o);
             });
             opSelect.style.display = "block";
-            opSelect.value = "=="; // por defecto DISTINTO
+            opSelect.value = "=="; // por defecto IGUAL
 
             return;
         }
@@ -786,7 +786,7 @@ if (this.nameInput) {
                 opSelect.appendChild(o);
             });
             opSelect.style.display = "block";
-            opSelect.value = "=="; // por defecto DISTINTO
+            opSelect.value = "=="; // por defecto IGUAL
 
         } else if (tipo === "si_no") {
             // SI/NO → select true/false + operador == / !=
@@ -810,7 +810,7 @@ if (this.nameInput) {
                 opSelect.appendChild(o);
             });
             opSelect.style.display = "block";
-            opSelect.value = "!=";
+            opSelect.value = "==";
 
         } else if (tipo === "numero" || tipo === "moneda") {
             // NUMERO / MONEDA → valor numérico + > < >= <=
@@ -839,7 +839,7 @@ if (this.nameInput) {
                 opSelect.appendChild(o);
             });
             opSelect.style.display = "block";
-            opSelect.value = "!=";
+            opSelect.value = "==";
         }
     },
 
@@ -896,21 +896,21 @@ if (this.nameInput) {
                             op = (opSelect.value || ">").trim();
                         } else if (tipoCampo === "selector" || tipoCampo === "si_no") {
                             valorRaw = valSelect.value || "";
-                            op = (opSelect.value || "!=").trim();
+                            op = (opSelect.value || "==").trim();
                         } else {
                             valorRaw = valInput.value || "";
-                            op = (opSelect.value || "!=").trim();
+                            op = (opSelect.value || "==").trim();
                         }
                     }
                 } else {
                     // Manual
                     refRaw = refInput.value || "";
                     valorRaw = valInput.value || "";
-                    op = (opSelect.value || "!=").trim();
+                    op = (opSelect.value || "==").trim();
                 }
 
                 if (!refRaw || !valorRaw) return;
-                if (!op) op = "!=";
+                if (!op) op = "==";
 
                 subConds.push({
                     logic: subLogic,

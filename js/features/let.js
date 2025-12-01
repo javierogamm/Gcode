@@ -32,8 +32,10 @@ const LetManager = {
 
     modal: null,
     refSelect: null,
+    refTargetSelect: null,
     refInput: null,
     formulaInput: null,
+    refHint: null,
     tesauroList: null,
     defList: null,
 
@@ -52,6 +54,9 @@ const LetManager = {
 
     // rango de LET en modo edición (start, end) o null si es nuevo
     editingLetRange: null,
+
+    // tipo de referencia destino: personalized (tesauro) | variable
+    destRefKind: "personalized",
 
     /* =======================================
        INIT
@@ -124,6 +129,7 @@ const LetManager = {
                 <p style="margin:0 0 12px 0; font-size:12px; color:#6b7280;">
                     Genera una instrucción
                     <code>{{let | reference: personalized.MiCampo | result: ...}}</code>
+                    o <code>{{let | reference: variable.MiVariable | result: ...}}</code>
                     para cálculos con tesauros <strong>número / moneda / sí_no</strong>
                     y variables <code>{{definition}}</code> de tipo <strong>numeric</strong>.
                 </p>
@@ -133,7 +139,7 @@ const LetManager = {
                     <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
                         <div>
                             <span style="display:block; font-size:12px; color:#6b7280; margin-bottom:3px;">
-                                Referencia destino (personalized.REF)
+                                Referencia destino (personalized.REF / variable.REF)
                             </span>
                             <div style="display:flex; gap:6px;">
                                 <select id="letRefSelect" style="
@@ -143,6 +149,16 @@ const LetManager = {
                                     border:1px solid #cbd5e1;
                                     font-size:12px;
                                 "></select>
+                                <select id="letRefTarget" style="
+                                    width:190px;
+                                    padding:5px 6px;
+                                    border-radius:6px;
+                                    border:1px solid #cbd5e1;
+                                    font-size:12px;
+                                ">
+                                    <option value="personalized">Tesauro (personalized.)</option>
+                                    <option value="variable">Variable (variable.)</option>
+                                </select>
                             </div>
                             <input id="letRefInput" type="text" placeholder="MiCampoResultado" style="
                                 margin-top:6px;
@@ -152,7 +168,7 @@ const LetManager = {
                                 border:1px solid #cbd5e1;
                                 font-size:13px;
                             ">
-                            <p style="font-size:11px; color:#9ca3af; margin:4px 0 0 0;">
+                            <p id="letRefHint" style="font-size:11px; color:#9ca3af; margin:4px 0 0 0;">
                                 Se insertará como <code>personalized.&lt;referencia&gt;</code>.
                             </p>
                         </div>
@@ -349,6 +365,7 @@ const LetManager = {
 
         this.modal        = div;
         this.refSelect    = div.querySelector("#letRefSelect");
+        this.refTargetSelect = div.querySelector("#letRefTarget");
         this.refInput     = div.querySelector("#letRefInput");
         this.formulaInput = div.querySelector("#letFormulaInput");
         this.zeroIfNullInput = div.querySelector("#letZeroIfNull");
@@ -356,6 +373,7 @@ const LetManager = {
         this.tesauroList  = div.querySelector("#letTesauroList");
         this.defList      = div.querySelector("#letDefinitionList");
         this.tesauroSearch = div.querySelector("#letTesauroSearch");  // *** NUEVO ***
+        this.refHint      = div.querySelector("#letRefHint");
 
         if (this.tesauroSearch) {
             const onSearchChange = () => this.renderTesauroList();
@@ -387,6 +405,10 @@ const LetManager = {
         // Cambiar referencia al seleccionar tesauro destino
         if (this.refSelect) {
             this.refSelect.addEventListener("change", () => this.onChangeRefSelect());
+        }
+
+        if (this.refTargetSelect) {
+            this.refTargetSelect.addEventListener("change", () => this.onChangeRefTarget());
         }
 
         // *** CAMBIO: lógica de operadores rápidos, incluyendo "()" que envuelve selección
@@ -455,6 +477,7 @@ const LetManager = {
        Utilidades tipo destino
     ======================================= */
     getDestType() {
+        if (this.destRefKind === "variable") return "variable";
         const f = this.currentDestField;
         if (!f || !f.tipo) return null;
         return String(f.tipo);
@@ -462,13 +485,13 @@ const LetManager = {
 
     isNumericDest() {
         const t = this.getDestType();
-        return t === "numero" || t === "moneda";
+        return t === "numero" || t === "moneda" || t === "variable";
     },
 
     updateFormulaUIForDestType() {
         const destType = this.getDestType();
         const isBool   = destType === "si_no";
-        const isNum    = destType === "numero" || destType === "moneda";
+        const isNum    = destType === "numero" || destType === "moneda" || destType === "variable";
 
         if (this.formulaInput) {
             this.formulaInput.disabled = isBool;
@@ -770,11 +793,19 @@ const LetManager = {
 
         const idxStr = this.refSelect.value;
 
-        this.currentDestField = null;
+        this.currentDestField = this.destRefKind === "variable" ? { tipo: "variable" } : null;
+
+        if (idxStr) {
+            this.destRefKind = "personalized";
+            if (this.refTargetSelect) {
+                this.refTargetSelect.value = "personalized";
+            }
+        }
 
         if (!idxStr) {
             this.refInput.disabled = false;
             this.updateFormulaUIForDestType();
+            this.updateRefHint();
             return;
         }
 
@@ -784,6 +815,7 @@ const LetManager = {
         if (!field) {
             this.refInput.disabled = false;
             this.updateFormulaUIForDestType();
+            this.updateRefHint();
             return;
         }
 
@@ -793,6 +825,30 @@ const LetManager = {
 
         this.currentDestField = field;
         this.updateFormulaUIForDestType();
+        this.updateRefHint();
+    },
+
+    onChangeRefTarget() {
+        const sel = this.refTargetSelect;
+        if (!sel) return;
+
+        const val = sel.value === "variable" ? "variable" : "personalized";
+        this.destRefKind = val;
+
+        if (val === "variable") {
+            this.currentDestField = { tipo: "variable" };
+            if (this.refSelect) {
+                this.refSelect.value = "";
+            }
+            if (this.refInput) {
+                this.refInput.disabled = false;
+            }
+        } else {
+            this.currentDestField = null;
+        }
+
+        this.updateFormulaUIForDestType();
+        this.updateRefHint();
     },
 
     /* =======================================
@@ -858,8 +914,13 @@ const LetManager = {
 
         // Reference: puede venir como personalized.REF
         let destRef = refPart;
+        this.destRefKind = "personalized";
         if (/^personalized\./i.test(destRef)) {
             destRef = destRef.replace(/^personalized\./i, "").trim();
+        } else if (/^variable\./i.test(destRef)) {
+            destRef = destRef.replace(/^variable\./i, "").trim();
+            this.destRefKind = "variable";
+            this.currentDestField = { tipo: "variable" };
         }
 
         // Rellenar referencia destino
@@ -870,14 +931,19 @@ const LetManager = {
         if (this.refSelect) {
             this.refSelect.value = "";
         }
+        if (this.refTargetSelect) {
+            this.refTargetSelect.value = this.destRefKind;
+        }
         this.currentDestField = null;
 
         // Intentar casar con un tesauro destino
         let destFieldIndex = -1;
-        for (let i = 0; i < this.tesauroFields.length; i++) {
-            if (this.tesauroFields[i].ref === destRef) {
-                destFieldIndex = i;
-                break;
+        if (this.destRefKind !== "variable") {
+            for (let i = 0; i < this.tesauroFields.length; i++) {
+                if (this.tesauroFields[i].ref === destRef) {
+                    destFieldIndex = i;
+                    break;
+                }
             }
         }
         if (destFieldIndex >= 0 && this.refSelect) {
@@ -913,6 +979,7 @@ const LetManager = {
 
         // Ajustar UI (booleana / numérica según destino)
         this.updateFormulaUIForDestType();
+        this.updateRefHint();
     },
 
     /* =======================================
@@ -932,6 +999,7 @@ const LetManager = {
         this.currentDestField = null;
         this.tokenMap = {};
         this.definitionVars = [];
+        this.destRefKind = "personalized";
 
         // Construir tesauros + alias (rellena tokenMap)
         this.buildTesauroFields();
@@ -967,12 +1035,16 @@ const LetManager = {
         if (this.refSelect) {
             this.refSelect.value = "";
         }
+        if (this.refTargetSelect) {
+            this.refTargetSelect.value = this.destRefKind;
+        }
         if (this.formulaInput) {
             this.formulaInput.value = "";
             this.formulaInput.disabled = false;
         }
         if (this.zeroIfNullInput) this.zeroIfNullInput.checked = false;
         if (this.decimalsInput)   this.decimalsInput.value = "";
+        this.updateRefHint();
         // Si estamos editando un LET → precargar datos
         if (isEditing) {
             this.prefillFromExistingLet(existingLet);
@@ -1034,6 +1106,13 @@ const LetManager = {
         return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     },
 
+    updateRefHint() {
+        if (!this.refHint) return;
+        const prefix = this.destRefKind === "variable" ? "variable." : "personalized.";
+        this.refHint.innerHTML =
+            "Se insertará como <code>" + prefix + "&lt;referencia&gt;</code>.";
+    },
+
     // Sustituir alias por personalized.REF / variable.REF
     replaceTokenAliases(formula) {
         if (!this.tokenMap || !Object.keys(this.tokenMap).length) return formula;
@@ -1063,19 +1142,41 @@ const LetManager = {
         let refRaw = this.refInput.value || "";
         refRaw = refRaw.trim();
 
+        let destKind = this.destRefKind === "variable" ? "variable" : "personalized";
+
+        if (/^personalized\./i.test(refRaw)) {
+            destKind = "personalized";
+            refRaw = refRaw.replace(/^personalized\./i, "").trim();
+        } else if (/^variable\./i.test(refRaw)) {
+            destKind = "variable";
+            refRaw = refRaw.replace(/^variable\./i, "").trim();
+        }
+
         if (!refRaw) {
             alert("Debes indicar una referencia destino.");
             return;
         }
 
         const refSan = this.sanitizeId(refRaw, "MiCampoResultado");
-        const fullRef = "personalized." + refSan;
+        const fullRef = destKind + "." + refSan;
+
+        this.destRefKind = destKind;
+        if (this.refTargetSelect) {
+            this.refTargetSelect.value = destKind;
+        }
+        if (destKind === "variable" && !this.currentDestField) {
+            this.currentDestField = { tipo: "variable" };
+        }
 
         let formula = this.formulaInput.value || "";
         formula = formula.trim();
 
         const destField = this.currentDestField || null;
-        const destType  = destField && destField.tipo ? String(destField.tipo) : null;
+        const destType  = destKind === "variable"
+            ? "variable"
+            : destField && destField.tipo
+                ? String(destField.tipo)
+                : null;
 
         // si_no → si/sí/no → true/false
         if (destType === "si_no") {
