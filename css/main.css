@@ -697,6 +697,14 @@ body {
    GUÍA INTERACTIVA
    ============================= */
 
+:root {
+  --guide-z-base: 1200000;
+  --guide-z-overlay: var(--guide-z-base);
+  --guide-z-fab: calc(var(--guide-z-base) + 8);
+  --guide-z-drag: calc(var(--guide-z-base) + 2);
+  --guide-z-branch: calc(var(--guide-z-base) + 10);
+}
+
 
 .guide-trigger {
   position: fixed;
@@ -712,7 +720,7 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   cursor: pointer;
   font-size: 13px;
-  z-index: 200000;
+  z-index: var(--guide-z-fab);
   transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
@@ -730,7 +738,7 @@ body {
   box-shadow: 0 8px 24px rgba(14, 165, 233, 0.28);
   cursor: pointer;
   font-size: 13px;
-  z-index: 200000;
+  z-index: var(--guide-z-fab);
   transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
@@ -749,7 +757,7 @@ body {
 .guide-layer {
   position: fixed;
   inset: 0;
-  z-index: 300000;
+  z-index: var(--guide-z-overlay);
   pointer-events: none;
   font-family: inherit;
 }
@@ -778,6 +786,7 @@ body {
   transition: all 0.2s ease;
   pointer-events: none;
   opacity: 0;
+  z-index: calc(var(--guide-z-overlay) + 1);
 }
 
 .guide-layer.active .guide-highlight {
@@ -796,6 +805,7 @@ body {
   opacity: 0;
   transform: translateY(8px);
   transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: calc(var(--guide-z-overlay) + 2);
 }
 
 .guide-layer.active .guide-tooltip {
@@ -829,6 +839,7 @@ body {
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  z-index: var(--guide-z-branch);
 }
 
 .guide-branch-card {
@@ -843,7 +854,7 @@ body {
   gap: 12px;
   position: relative;
   pointer-events: auto;
-  z-index: 300010;
+  z-index: calc(var(--guide-z-branch) + 2);
 }
 
 .guide-branch-card h4 {
@@ -930,7 +941,7 @@ body {
 
 .guide-drag-demo {
   position: fixed;
-  z-index: 300002;
+  z-index: var(--guide-z-drag);
   display: inline-flex;
   align-items: center;
   gap: 8px;

@@ -1,5 +1,8 @@
 # Log de cambios
 
+## v1.3.3 - 2024-06-20
+- Se elevó la guía, los tooltips y los botones flotantes a una capa superior (z-index base 1.200.000) para que siempre queden por encima de los modales del Gestor de Tesauros y permitan avanzar el tutorial.
+
 ## v1.3.2 - 2024-06-19
 - Se elevó la guía y los tooltips para que siempre queden por encima de los modales del Gestor de Tesauros y permitan avanzar el recorrido.
 - El modal inicial de "TUTORIAL" ahora muestra la opción de tesauros en una lista centrada bajo la pregunta principal.
