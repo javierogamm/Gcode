@@ -121,21 +121,26 @@
         message.textContent = "Elige cómo quieres continuar con las opciones guiadas del tutorial.";
         body.appendChild(message);
 
-        const actions = document.createElement("div");
-        actions.className = "tutorial-start-actions";
+        const list = document.createElement("div");
+        list.className = "tutorial-start-list";
 
         const confirm = document.createElement("button");
         confirm.type = "button";
         confirm.className = "tutorial-start-btn";
         confirm.textContent = "Configurar tesauros";
 
+        list.appendChild(confirm);
+
+        const actions = document.createElement("div");
+        actions.className = "tutorial-start-actions";
+
         const cancel = document.createElement("button");
         cancel.type = "button";
         cancel.className = "tutorial-start-btn tutorial-start-cancel";
         cancel.textContent = "Cerrar";
 
-        actions.appendChild(confirm);
         actions.appendChild(cancel);
+        body.appendChild(list);
         body.appendChild(actions);
 
         card.appendChild(header);
@@ -432,14 +437,28 @@
     }
 
     function useBranchActions(options) {
-        const { actions, prevBtn, nextBtn, exitBtn } = state.elements;
-        if (!actions) return () => {};
+        const { actions, prevBtn, nextBtn, layer } = state.elements;
+        if (!actions || !layer) return () => {};
 
         const originalPrevDisplay = prevBtn?.style.display || "";
         const originalNextDisplay = nextBtn?.style.display || "";
 
         if (prevBtn) prevBtn.style.display = "none";
         if (nextBtn) nextBtn.style.display = "none";
+
+        const existingOverlay = layer.querySelector(".guide-branch-overlay");
+        if (existingOverlay) existingOverlay.remove();
+
+        const overlay = document.createElement("div");
+        overlay.className = "guide-branch-overlay";
+
+        const card = document.createElement("div");
+        card.className = "guide-branch-card";
+
+        const title = document.createElement("h4");
+        title.textContent = options.title || state.elements.title?.textContent || "Elige una ruta";
+        const desc = document.createElement("p");
+        desc.textContent = options.description || state.elements.text?.textContent || "Selecciona cómo quieres continuar.";
 
         const wrapper = document.createElement("div");
         wrapper.className = "guide-branch-options";
@@ -459,10 +478,14 @@
         wrapper.appendChild(primary);
         wrapper.appendChild(secondary);
 
-        actions.insertBefore(wrapper, exitBtn || null);
+        card.appendChild(title);
+        card.appendChild(desc);
+        card.appendChild(wrapper);
+        overlay.appendChild(card);
+        layer.appendChild(overlay);
 
         return () => {
-            wrapper.remove();
+            overlay.remove();
             if (prevBtn) prevBtn.style.display = originalPrevDisplay;
             if (nextBtn) nextBtn.style.display = originalNextDisplay;
         };

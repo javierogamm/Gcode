@@ -1,5 +1,10 @@
 # Log de cambios
 
+## v1.3.2 - 2024-06-19
+- Se elevó la guía y los tooltips para que siempre queden por encima de los modales del Gestor de Tesauros y permitan avanzar el recorrido.
+- El modal inicial de "TUTORIAL" ahora muestra la opción de tesauros en una lista centrada bajo la pregunta principal.
+- La elección Sí/No del tutorial de tesauros se presenta en una tarjeta central para facilitar la selección en pantalla completa.
+
 ## v1.3.1 - 2024-06-18
 - Los pasos del tutorial se muestran ahora por encima de cualquier modal para permitir avanzar o finalizar sin bloquear clics.
 - Se añadió un modal inicial centrado y ampliado al pulsar "TUTORIAL" para preguntar "¿Qué quieres hacer?" y lanzar la ruta de configuración de tesauros.
