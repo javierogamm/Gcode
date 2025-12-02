@@ -57,6 +57,7 @@
     const tutorialModal = {
         overlay: null,
         confirmBtn: null,
+        insertBtn: null,
         cancelBtn: null
     };
 
@@ -129,7 +130,13 @@
         confirm.className = "tutorial-start-btn";
         confirm.textContent = "Configurar tesauros";
 
+        const insert = document.createElement("button");
+        insert.type = "button";
+        insert.className = "tutorial-start-btn tutorial-start-secondary";
+        insert.textContent = "Insertar tesauro en el Markdown";
+
         list.appendChild(confirm);
+        list.appendChild(insert);
 
         const actions = document.createElement("div");
         actions.className = "tutorial-start-actions";
@@ -158,6 +165,7 @@
 
         tutorialModal.overlay = overlay;
         tutorialModal.confirmBtn = confirm;
+        tutorialModal.insertBtn = insert;
         tutorialModal.cancelBtn = cancel;
         return tutorialModal;
     }
@@ -227,10 +235,13 @@
     }
 
     function startTesauroTutorial() {
-        openTutorialModal(() => startFlow(buildTesauroTutorialSteps));
+        openTutorialModal({
+            onConfigure: () => startFlow(buildTesauroTutorialSteps),
+            onInsert: () => startFlow(buildInsertTesauroFlow)
+        });
     }
 
-    function openTutorialModal(onConfirm) {
+    function openTutorialModal(options = {}) {
         const modal = ensureTutorialModal();
         if (!modal.overlay || !modal.confirmBtn) return;
 
@@ -238,10 +249,18 @@
 
         const handleConfirm = () => {
             closeTutorialModal();
-            if (typeof onConfirm === "function") onConfirm();
+            if (typeof options.onConfigure === "function") options.onConfigure();
+        };
+
+        const handleInsert = () => {
+            closeTutorialModal();
+            if (typeof options.onInsert === "function") options.onInsert();
         };
 
         modal.confirmBtn.onclick = handleConfirm;
+        if (modal.insertBtn) {
+            modal.insertBtn.onclick = handleInsert;
+        }
     }
 
     function closeTutorialModal() {
@@ -250,6 +269,9 @@
         }
         if (tutorialModal.confirmBtn) {
             tutorialModal.confirmBtn.onclick = null;
+        }
+        if (tutorialModal.insertBtn) {
+            tutorialModal.insertBtn.onclick = null;
         }
     }
 
@@ -677,6 +699,58 @@
                 description: "Pega aquí el código Markdown y Gcode detectará las referencias para añadirlas al gestor.",
                 element: () => document.querySelector("#tmMdInput") || window.TesauroManager?.markdownImportModal,
                 onEnter: () => openModalWithManager(() => window.TesauroManager?.openMarkdownImportPopup?.(), () => window.TesauroManager?.markdownImportModal)
+            }
+        ];
+    }
+
+    function buildInsertTesauroFlow() {
+        const panelBtn = document.getElementById("btnTesauro");
+        const managerBtn = document.getElementById("btnTesauroManagerFloating");
+
+        const ensurePanel = () => {
+            const panel = ensureTesauroPanelOpen();
+            return panel || panelBtn;
+        };
+
+        const findInsertButton = () => {
+            const panel = ensureTesauroPanelOpen();
+            return panel ? panel.querySelector(".tesauro-item .tesauro-insert") : null;
+        };
+
+        return [
+            {
+                title: "Abre el panel lateral de tesauros",
+                description: "Pulsa el botón flotante o elige \"Tesauros\" para mostrar los campos disponibles a la derecha.",
+                element: () => ensurePanel(),
+                onEnter: () => ensureTesauroPanelOpen()
+            },
+            {
+                title: "Arrastra un tesauro al editor",
+                description: "Puedes arrastrar cualquier campo al área de texto para insertarlo donde tengas el cursor.",
+                element: () => ensureTesauroPanelOpen(),
+                onEnter: () => {
+                    const panel = ensureTesauroPanelOpen();
+                    showDragDemo(panel);
+                    return () => removeDragDemo();
+                }
+            },
+            {
+                title: "Inserta con un clic",
+                description: "Si prefieres, usa el botón ➕ de cada tesauro para insertarlo automáticamente en el Markdown.",
+                element: () => findInsertButton() || ensureTesauroPanelOpen(),
+                onEnter: () => ensureTesauroPanelOpen()
+            },
+            {
+                title: "Revisa el resultado en el editor",
+                description: "El tesauro se coloca en la posición del cursor. Si necesitas otro, repite desde el panel lateral.",
+                element: () => document.getElementById("markdownText") || document.getElementById("workContainer"),
+                onEnter: () => ensureTesauroPanelOpen()
+            },
+            {
+                title: "Gestiona tesauros sin salir",
+                description: "¿Te falta algún campo? Abre el gestor completo para crear o importar nuevos antes de insertarlos.",
+                element: () => managerBtn,
+                onEnter: () => ensureTesauroManager()
             }
         ];
     }

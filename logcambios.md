@@ -1,5 +1,9 @@
 # Log de cambios
 
+## v1.3.4 - 2024-06-21
+- Se añadió un nuevo botón en el modal de tutorial para lanzar un recorrido dedicado a la inserción de tesauros, con pasos guiados que muestran cómo abrir el panel, arrastrar o insertar con un clic y revisar el resultado.
+- Se dio estilo diferenciado al nuevo botón secundario del tutorial para futuras opciones.
+
 ## v1.3.3 - 2024-06-20
 - Se elevó la guía, los tooltips y los botones flotantes a una capa superior (z-index base 1.200.000) para que siempre queden por encima de los modales del Gestor de Tesauros y permitan avanzar el tutorial.
 
