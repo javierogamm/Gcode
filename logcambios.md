@@ -1,5 +1,8 @@
 # Log de cambios
 
+## v1.3.0 - 2024-06-17
+- Se añadió un tutorial guiado con botón flotante junto a la guía para recorrer la creación o importación de tesauros, abriendo automáticamente los botones y modales clave según tengas o no tesauros en Gestiona.
+
 ## v1.2.2 - 2024-06-16
 - Se ampliaron los modales de LET y Sections para ofrecer más espacio de trabajo y se ajustaron sus controles para ocupar el ancho disponible.
 

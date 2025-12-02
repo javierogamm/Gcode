@@ -18,6 +18,19 @@
         tesauroManager: {
             title: "Gestor de tesauros",
             description: "Acceso directo al gestor completo para importar, editar o exportar todos los tesauros del proyecto."
+        },
+        tutorial: {
+            introTitle: "Tesauros: elige tu ruta",
+            introDesc: "¿Tienes tesauros configurados en Gestiona? Elige cómo quieres continuar para configurarlos en Gcode.",
+            createTitle: "Crea tesauros desde cero",
+            createDesc: "Puedes crear y configurar todos los tesauros que necesites directamente en la plantilla.",
+            managerEntry: "El gestor de tesauros te permite crear y administrar todos los campos de la plantilla.",
+            managerNew: "Añade tesauros individualmente con el botón de creación dentro del gestor.",
+            managerBatch: "Carga varios tesauros a la vez desde el botón \"Referenciar Tesauros\" pegando sus nombres (uno por línea).",
+            importIntro: "Tienes varias formas de importar tesauros existentes antes de trabajar el Markdown.",
+            importText: "Copia y pega los tesauros como texto plano tal cual salen de la actividad en Gestiona.",
+            importCsv: "Importa los CSV usados por las RPA en Gestiona. Si tienes Tesauro.csv y Tesauro_Valores.csv, añade ambos.",
+            importMd: "Si ya tienes un Markdown con tesauros, pégalo y Gcode detectará automáticamente las referencias."
         }
     };
 
@@ -35,13 +48,15 @@
             text: null,
             prevBtn: null,
             nextBtn: null,
-            exitBtn: null
+            exitBtn: null,
+            actions: null
         },
         dragDemo: null
     };
 
     document.addEventListener("DOMContentLoaded", () => {
         ensureTrigger();
+        ensureTutorialTrigger();
         createLayer();
         attachEvents();
     });
@@ -57,6 +72,20 @@
             document.body.appendChild(trigger);
         }
         trigger.addEventListener("click", startGuide);
+        return trigger;
+    }
+
+    function ensureTutorialTrigger() {
+        let trigger = document.getElementById("tutorialTrigger");
+        if (!trigger) {
+            trigger = document.createElement("button");
+            trigger.id = "tutorialTrigger";
+            trigger.className = "tutorial-trigger";
+            trigger.type = "button";
+            trigger.textContent = "TUTORIAL";
+            document.body.appendChild(trigger);
+        }
+        trigger.addEventListener("click", startTesauroTutorial);
         return trigger;
     }
 
@@ -98,7 +127,8 @@
             text: tooltip.querySelector("#guideText"),
             prevBtn: tooltip.querySelector(".guide-prev"),
             nextBtn: tooltip.querySelector(".guide-next"),
-            exitBtn: tooltip.querySelector(".guide-exit")
+            exitBtn: tooltip.querySelector(".guide-exit"),
+            actions: tooltip.querySelector(".guide-actions")
         };
 
         return layer;
@@ -120,9 +150,18 @@
     }
 
     function startGuide() {
-        const steps = buildSteps();
-        if (!steps.length) return;
+        startFlow(buildSteps);
+    }
 
+    function startTesauroTutorial() {
+        startFlow(buildTesauroTutorialSteps);
+    }
+
+    function startFlow(builder) {
+        const steps = typeof builder === "function" ? builder() : builder;
+        if (!steps || !steps.length) return;
+
+        runCleanup();
         state.steps = steps;
         state.current = 0;
         state.active = true;
@@ -293,6 +332,51 @@
         removeDragDemo();
     }
 
+    function switchSteps(newSteps) {
+        if (!Array.isArray(newSteps) || !newSteps.length) return;
+        runCleanup();
+        state.steps = newSteps;
+        state.current = 0;
+        renderStep(0);
+    }
+
+    function useBranchActions(options) {
+        const { actions, prevBtn, nextBtn, exitBtn } = state.elements;
+        if (!actions) return () => {};
+
+        const originalPrevDisplay = prevBtn?.style.display || "";
+        const originalNextDisplay = nextBtn?.style.display || "";
+
+        if (prevBtn) prevBtn.style.display = "none";
+        if (nextBtn) nextBtn.style.display = "none";
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "guide-branch-options";
+
+        const primary = document.createElement("button");
+        primary.type = "button";
+        primary.className = "guide-branch-primary";
+        primary.textContent = options.primaryLabel || "Opción 1";
+        primary.addEventListener("click", options.onPrimary);
+
+        const secondary = document.createElement("button");
+        secondary.type = "button";
+        secondary.className = "guide-branch-secondary";
+        secondary.textContent = options.secondaryLabel || "Opción 2";
+        secondary.addEventListener("click", options.onSecondary);
+
+        wrapper.appendChild(primary);
+        wrapper.appendChild(secondary);
+
+        actions.insertBefore(wrapper, exitBtn || null);
+
+        return () => {
+            wrapper.remove();
+            if (prevBtn) prevBtn.style.display = originalPrevDisplay;
+            if (nextBtn) nextBtn.style.display = originalNextDisplay;
+        };
+    }
+
     function resetOverlay() {
         const { highlight, tooltip } = state.elements;
         if (highlight) {
@@ -367,6 +451,151 @@
             state.dragDemo.parentNode.removeChild(state.dragDemo);
         }
         state.dragDemo = null;
+    }
+
+    function buildTesauroTutorialSteps() {
+        const createFlow = buildTesauroCreationFlow();
+        const importFlow = buildTesauroImportFlow();
+
+        const introStep = {
+            title: messages.tutorial.introTitle,
+            description: messages.tutorial.introDesc,
+            element: () => document.getElementById("tutorialTrigger") || document.getElementById("guideTrigger"),
+            onEnter: () => useBranchActions({
+                primaryLabel: "No, debo crearlos",
+                secondaryLabel: "Sí, ya los tengo",
+                onPrimary: () => switchSteps(createFlow),
+                onSecondary: () => switchSteps(importFlow)
+            })
+        };
+
+        return [introStep];
+    }
+
+    function buildTesauroCreationFlow() {
+        const managerBtn = document.getElementById("btnTesauroManagerFloating");
+
+        return [
+            {
+                title: messages.tutorial.createTitle,
+                description: `${messages.tutorial.createDesc} Pulsa en "Crear Tesauro" para añadir uno nuevo desde la plantilla y se insertará en el Markdown actual.`,
+                element: () => document.getElementById("btnTesauroCrear")
+            },
+            {
+                title: "Gestor de tesauros",
+                description: `${messages.tutorial.managerEntry} También puedes gestionar las referencias sin salir del editor.`,
+                element: () => managerBtn,
+                onEnter: () => ensureTesauroManager()
+            },
+            {
+                title: "Crear tesauros individuales",
+                description: messages.tutorial.managerNew,
+                element: () => findInManager("#tmNewTesauro"),
+                onEnter: () => ensureTesauroManager()
+            },
+            {
+                title: "Crear varios tesauros a la vez",
+                description: messages.tutorial.managerBatch,
+                element: () => findInManager("#tmOpenRefPopup"),
+                onEnter: () => {
+                    ensureTesauroManager();
+                    if (window.TesauroManager?.openRefPopup) {
+                        TesauroManager.openRefPopup();
+                    }
+                    return () => hideIfExists(window.TesauroManager?.refModal);
+                }
+            },
+            {
+                title: "Pega la lista de nombres",
+                description: "Pon los nombres de los tesauros separados por salto de línea y Gcode sugerirá las referencias automáticamente.",
+                element: () => document.querySelector("#refInput") || document.querySelector("#tmReferencias") || findInManager("#tmOpenRefPopup"),
+                onEnter: () => {
+                    ensureTesauroManager();
+                    if (window.TesauroManager?.openRefPopup) {
+                        TesauroManager.openRefPopup();
+                    }
+                    return () => hideIfExists(window.TesauroManager?.refModal);
+                }
+            }
+        ];
+    }
+
+    function buildTesauroImportFlow() {
+        return [
+            {
+                title: "Importa tus tesauros existentes",
+                description: messages.tutorial.importIntro,
+                element: () => document.getElementById("btnTesauroManagerFloating"),
+                onEnter: () => ensureTesauroManager()
+            },
+            {
+                title: "Copiar y pegar como texto",
+                description: messages.tutorial.importText,
+                element: () => findInManager("#tmOpenPlainImport"),
+                onEnter: () => openModalWithManager(() => window.TesauroManager?.openPlainImportPopup?.(), () => window.TesauroManager?.importModal)
+            },
+            {
+                title: "Pega los tesauros desde Gestiona",
+                description: "Copia y pega directamente desde la actividad en Gestiona para cargarlos en bloque.",
+                element: () => document.querySelector("#tmPlainInput") || window.TesauroManager?.importModal,
+                onEnter: () => openModalWithManager(() => window.TesauroManager?.openPlainImportPopup?.(), () => window.TesauroManager?.importModal)
+            },
+            {
+                title: "Importar desde CSV",
+                description: messages.tutorial.importCsv,
+                element: () => findInManager("#tmOpenCsvImport"),
+                onEnter: () => openModalWithManager(() => window.TesauroManager?.openCsvImportPopup?.(), () => window.TesauroManager?.csvImportModal)
+            },
+            {
+                title: "Adjunta los CSV de RPA",
+                description: "Sube Tesauro.csv y, si los tienes, Tesauro_Valores.csv y Vinculacion_Tesauros.csv.",
+                element: () => document.querySelector("#tmCsvFileMain") || window.TesauroManager?.csvImportModal,
+                onEnter: () => openModalWithManager(() => window.TesauroManager?.openCsvImportPopup?.(), () => window.TesauroManager?.csvImportModal)
+            },
+            {
+                title: "Importar desde Markdown",
+                description: messages.tutorial.importMd,
+                element: () => findInManager("#tmOpenMdImport"),
+                onEnter: () => openModalWithManager(() => window.TesauroManager?.openMarkdownImportPopup?.(), () => window.TesauroManager?.markdownImportModal)
+            },
+            {
+                title: "Pega tu Markdown con tesauros",
+                description: "Pega aquí el código Markdown y Gcode detectará las referencias para añadirlas al gestor.",
+                element: () => document.querySelector("#tmMdInput") || window.TesauroManager?.markdownImportModal,
+                onEnter: () => openModalWithManager(() => window.TesauroManager?.openMarkdownImportPopup?.(), () => window.TesauroManager?.markdownImportModal)
+            }
+        ];
+    }
+
+    function ensureTesauroManager() {
+        if (window.TesauroManager && typeof TesauroManager.open === "function") {
+            TesauroManager.open();
+            return TesauroManager.modal || document.getElementById("tesauroManagerModal");
+        }
+        return null;
+    }
+
+    function findInManager(selector) {
+        const modal = ensureTesauroManager();
+        return modal ? modal.querySelector(selector) : null;
+    }
+
+    function openModalWithManager(openFn, modalGetter) {
+        ensureTesauroManager();
+        if (typeof openFn === "function") {
+            openFn();
+        }
+        const cleanup = () => {
+            const modal = typeof modalGetter === "function" ? modalGetter() : null;
+            hideIfExists(modal);
+        };
+        return cleanup;
+    }
+
+    function hideIfExists(modal) {
+        if (modal && modal.style) {
+            modal.style.display = "none";
+        }
     }
 
     function buildTesauroManagerSteps(managerBtn) {
