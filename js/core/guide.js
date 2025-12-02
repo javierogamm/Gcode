@@ -54,6 +54,12 @@
         dragDemo: null
     };
 
+    const tutorialModal = {
+        overlay: null,
+        confirmBtn: null,
+        cancelBtn: null
+    };
+
     document.addEventListener("DOMContentLoaded", () => {
         ensureTrigger();
         ensureTutorialTrigger();
@@ -87,6 +93,68 @@
         }
         trigger.addEventListener("click", startTesauroTutorial);
         return trigger;
+    }
+
+    function ensureTutorialModal() {
+        if (tutorialModal.overlay) return tutorialModal;
+
+        const overlay = document.createElement("div");
+        overlay.className = "modal-overlay tutorial-start-overlay";
+
+        const card = document.createElement("div");
+        card.className = "modal-card tutorial-start-card";
+
+        const header = document.createElement("div");
+        header.className = "modal-header";
+        const title = document.createElement("h3");
+        title.textContent = "¿Qué quieres hacer?";
+        const close = document.createElement("button");
+        close.type = "button";
+        close.className = "modal-close";
+        close.innerHTML = "&times;";
+        header.appendChild(title);
+        header.appendChild(close);
+
+        const body = document.createElement("div");
+        body.className = "tutorial-start-body";
+        const message = document.createElement("p");
+        message.textContent = "Elige cómo quieres continuar con las opciones guiadas del tutorial.";
+        body.appendChild(message);
+
+        const actions = document.createElement("div");
+        actions.className = "tutorial-start-actions";
+
+        const confirm = document.createElement("button");
+        confirm.type = "button";
+        confirm.className = "tutorial-start-btn";
+        confirm.textContent = "Configurar tesauros";
+
+        const cancel = document.createElement("button");
+        cancel.type = "button";
+        cancel.className = "tutorial-start-btn tutorial-start-cancel";
+        cancel.textContent = "Cerrar";
+
+        actions.appendChild(confirm);
+        actions.appendChild(cancel);
+        body.appendChild(actions);
+
+        card.appendChild(header);
+        card.appendChild(body);
+        overlay.appendChild(card);
+        document.body.appendChild(overlay);
+
+        overlay.addEventListener("click", (ev) => {
+            if (ev.target === overlay) {
+                closeTutorialModal();
+            }
+        });
+        close.addEventListener("click", closeTutorialModal);
+        cancel.addEventListener("click", closeTutorialModal);
+
+        tutorialModal.overlay = overlay;
+        tutorialModal.confirmBtn = confirm;
+        tutorialModal.cancelBtn = cancel;
+        return tutorialModal;
     }
 
     function createLayer() {
@@ -154,7 +222,30 @@
     }
 
     function startTesauroTutorial() {
-        startFlow(buildTesauroTutorialSteps);
+        openTutorialModal(() => startFlow(buildTesauroTutorialSteps));
+    }
+
+    function openTutorialModal(onConfirm) {
+        const modal = ensureTutorialModal();
+        if (!modal.overlay || !modal.confirmBtn) return;
+
+        modal.overlay.style.display = "flex";
+
+        const handleConfirm = () => {
+            closeTutorialModal();
+            if (typeof onConfirm === "function") onConfirm();
+        };
+
+        modal.confirmBtn.onclick = handleConfirm;
+    }
+
+    function closeTutorialModal() {
+        if (tutorialModal.overlay) {
+            tutorialModal.overlay.style.display = "none";
+        }
+        if (tutorialModal.confirmBtn) {
+            tutorialModal.confirmBtn.onclick = null;
+        }
     }
 
     function startFlow(builder) {

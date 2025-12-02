@@ -697,6 +697,7 @@ body {
    GUÍA INTERACTIVA
    ============================= */
 
+
 .guide-trigger {
   position: fixed;
   right: 16px;
@@ -711,7 +712,7 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   cursor: pointer;
   font-size: 13px;
-  z-index: 120001;
+  z-index: 200000;
   transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
@@ -729,7 +730,7 @@ body {
   box-shadow: 0 8px 24px rgba(14, 165, 233, 0.28);
   cursor: pointer;
   font-size: 13px;
-  z-index: 120001;
+  z-index: 200000;
   transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
@@ -748,7 +749,7 @@ body {
 .guide-layer {
   position: fixed;
   inset: 0;
-  z-index: 120000;
+  z-index: 199998;
   pointer-events: none;
   font-family: inherit;
 }
@@ -888,7 +889,7 @@ body {
 
 .guide-drag-demo {
   position: fixed;
-  z-index: 120002;
+  z-index: 200002;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -935,6 +936,74 @@ body {
 .guide-drag-subtitle {
   font-size: 11px;
   color: #4b5563;
+}
+
+/* Modal de entrada al tutorial */
+.tutorial-start-overlay {
+  z-index: 200300;
+}
+
+.tutorial-start-card {
+  width: min(840px, 96%);
+  max-width: 840px;
+  text-align: center;
+  padding-bottom: 20px;
+}
+
+.tutorial-start-card h3 {
+  font-size: 22px;
+}
+
+.tutorial-start-body {
+  padding: 18px 18px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.tutorial-start-body p {
+  margin: 0;
+  color: #475569;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.tutorial-start-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 6px 0 4px;
+}
+
+.tutorial-start-btn {
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+  color: #f8fafc;
+  box-shadow: 0 12px 26px rgba(14, 165, 233, 0.28);
+  transition: transform 0.14s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.tutorial-start-btn:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+  box-shadow: 0 16px 30px rgba(14, 165, 233, 0.32);
+}
+
+.tutorial-start-cancel {
+  background: #f3f4f6;
+  color: #0f172a;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+}
+
+.tutorial-start-cancel:hover {
+  background: #e5e7eb;
 }
 
 @keyframes guide-drag-move {

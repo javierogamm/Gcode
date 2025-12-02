@@ -1,5 +1,9 @@
 # Log de cambios
 
+## v1.3.1 - 2024-06-18
+- Los pasos del tutorial se muestran ahora por encima de cualquier modal para permitir avanzar o finalizar sin bloquear clics.
+- Se añadió un modal inicial centrado y ampliado al pulsar "TUTORIAL" para preguntar "¿Qué quieres hacer?" y lanzar la ruta de configuración de tesauros.
+
 ## v1.3.0 - 2024-06-17
 - Se añadió un tutorial guiado con botón flotante junto a la guía para recorrer la creación o importación de tesauros, abriendo automáticamente los botones y modales clave según tengas o no tesauros en Gestiona.
 
