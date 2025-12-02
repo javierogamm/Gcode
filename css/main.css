@@ -697,15 +697,6 @@ body {
    GUÍA INTERACTIVA
    ============================= */
 
-:root {
-  --guide-z-base: 1200000;
-  --guide-z-overlay: var(--guide-z-base);
-  --guide-z-fab: calc(var(--guide-z-base) + 8);
-  --guide-z-drag: calc(var(--guide-z-base) + 2);
-  --guide-z-branch: calc(var(--guide-z-base) + 10);
-}
-
-
 .guide-trigger {
   position: fixed;
   right: 16px;
@@ -720,32 +711,8 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   cursor: pointer;
   font-size: 13px;
-  z-index: var(--guide-z-fab);
+  z-index: 120001;
   transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.18s ease;
-}
-
-.tutorial-trigger {
-  position: fixed;
-  right: 124px;
-  bottom: 16px;
-  padding: 10px 12px;
-  border-radius: 999px;
-  border: 1px solid #0ea5e9;
-  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-  color: #f8fafc;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.28);
-  cursor: pointer;
-  font-size: 13px;
-  z-index: var(--guide-z-fab);
-  transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.18s ease;
-}
-
-.tutorial-trigger:hover {
-  transform: translateY(-1px);
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.32);
 }
 
 .guide-trigger:hover {
@@ -757,7 +724,7 @@ body {
 .guide-layer {
   position: fixed;
   inset: 0;
-  z-index: var(--guide-z-overlay);
+  z-index: 120000;
   pointer-events: none;
   font-family: inherit;
 }
@@ -786,7 +753,6 @@ body {
   transition: all 0.2s ease;
   pointer-events: none;
   opacity: 0;
-  z-index: calc(var(--guide-z-overlay) + 1);
 }
 
 .guide-layer.active .guide-highlight {
@@ -805,7 +771,6 @@ body {
   opacity: 0;
   transform: translateY(8px);
   transition: opacity 0.2s ease, transform 0.2s ease;
-  z-index: calc(var(--guide-z-overlay) + 2);
 }
 
 .guide-layer.active .guide-tooltip {
@@ -832,43 +797,6 @@ body {
   justify-content: flex-end;
 }
 
-.guide-branch-overlay {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  z-index: var(--guide-z-branch);
-}
-
-.guide-branch-card {
-  min-width: min(520px, 92vw);
-  background: rgba(255, 255, 255, 0.98);
-  border-radius: 14px;
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
-  border: 1px solid #e2e8f0;
-  padding: 18px 20px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  position: relative;
-  pointer-events: auto;
-  z-index: calc(var(--guide-z-branch) + 2);
-}
-
-.guide-branch-card h4 {
-  margin: 0;
-  font-size: 17px;
-  color: #0f172a;
-}
-
-.guide-branch-card p {
-  margin: 0;
-  color: #475569;
-  line-height: 1.5;
-}
-
 .guide-actions button {
   border: none;
   border-radius: 8px;
@@ -885,43 +813,6 @@ body {
   transform: translateY(-1px);
   background: #e5e7eb;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
-}
-
-.guide-branch-options {
-  display: flex;
-  gap: 12px;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.guide-branch-options button {
-  border: none;
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.16s ease, background 0.16s ease;
-}
-
-.guide-branch-primary {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  color: #f8fafc;
-  box-shadow: 0 10px 22px rgba(34, 197, 94, 0.26);
-  min-width: 180px;
-}
-
-.guide-branch-secondary {
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-  color: #0f172a;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
-  min-width: 180px;
-}
-
-.guide-branch-options button:hover {
-  transform: translateY(-1px);
 }
 
 .guide-actions .guide-next {
@@ -941,7 +832,7 @@ body {
 
 .guide-drag-demo {
   position: fixed;
-  z-index: var(--guide-z-drag);
+  z-index: 120002;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -988,96 +879,6 @@ body {
 .guide-drag-subtitle {
   font-size: 11px;
   color: #4b5563;
-}
-
-/* Modal de entrada al tutorial */
-.tutorial-start-overlay {
-  z-index: 200300;
-}
-
-.tutorial-start-card {
-  width: min(840px, 96%);
-  max-width: 840px;
-  text-align: center;
-  padding-bottom: 20px;
-}
-
-.tutorial-start-card h3 {
-  font-size: 22px;
-}
-
-.tutorial-start-body {
-  padding: 18px 18px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  align-items: stretch;
-}
-
-.tutorial-start-body p {
-  margin: 0;
-  color: #475569;
-  font-size: 15px;
-  line-height: 1.55;
-}
-
-.tutorial-start-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  padding: 6px 0 4px;
-}
-
-.tutorial-start-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: center;
-}
-
-.tutorial-start-list .tutorial-start-btn {
-  width: min(420px, 100%);
-  justify-content: center;
-}
-
-.tutorial-start-btn {
-  padding: 12px 18px;
-  border-radius: 12px;
-  border: none;
-  font-size: 14px;
-  font-weight: 800;
-  cursor: pointer;
-  background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
-  color: #f8fafc;
-  box-shadow: 0 12px 26px rgba(14, 165, 233, 0.28);
-  transition: transform 0.14s ease, box-shadow 0.18s ease, background 0.18s ease;
-}
-
-.tutorial-start-btn:hover {
-  transform: translateY(-1px);
-  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
-  box-shadow: 0 16px 30px rgba(14, 165, 233, 0.32);
-}
-
-.tutorial-start-secondary {
-  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
-  box-shadow: 0 12px 26px rgba(124, 58, 237, 0.28);
-}
-
-.tutorial-start-secondary:hover {
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-  box-shadow: 0 16px 30px rgba(124, 58, 237, 0.32);
-}
-
-.tutorial-start-cancel {
-  background: #f3f4f6;
-  color: #0f172a;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e5e7eb;
-}
-
-.tutorial-start-cancel:hover {
-  background: #e5e7eb;
 }
 
 @keyframes guide-drag-move {

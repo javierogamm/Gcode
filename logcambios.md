@@ -1,23 +1,7 @@
 # Log de cambios
 
-## v1.3.4 - 2024-06-21
-- Se añadió un nuevo botón en el modal de tutorial para lanzar un recorrido dedicado a la inserción de tesauros, con pasos guiados que muestran cómo abrir el panel, arrastrar o insertar con un clic y revisar el resultado.
-- Se dio estilo diferenciado al nuevo botón secundario del tutorial para futuras opciones.
-
-## v1.3.3 - 2024-06-20
-- Se elevó la guía, los tooltips y los botones flotantes a una capa superior (z-index base 1.200.000) para que siempre queden por encima de los modales del Gestor de Tesauros y permitan avanzar el tutorial.
-
-## v1.3.2 - 2024-06-19
-- Se elevó la guía y los tooltips para que siempre queden por encima de los modales del Gestor de Tesauros y permitan avanzar el recorrido.
-- El modal inicial de "TUTORIAL" ahora muestra la opción de tesauros en una lista centrada bajo la pregunta principal.
-- La elección Sí/No del tutorial de tesauros se presenta en una tarjeta central para facilitar la selección en pantalla completa.
-
-## v1.3.1 - 2024-06-18
-- Los pasos del tutorial se muestran ahora por encima de cualquier modal para permitir avanzar o finalizar sin bloquear clics.
-- Se añadió un modal inicial centrado y ampliado al pulsar "TUTORIAL" para preguntar "¿Qué quieres hacer?" y lanzar la ruta de configuración de tesauros.
-
-## v1.3.0 - 2024-06-17
-- Se añadió un tutorial guiado con botón flotante junto a la guía para recorrer la creación o importación de tesauros, abriendo automáticamente los botones y modales clave según tengas o no tesauros en Gestiona.
+## v1.3.5 - 2025-12-02
+- Se revierte el recorrido de inserción de tesauros y el botón secundario asociado en el modal de inicio, dejando el tutorial únicamente con el flujo principal previo.
 
 ## v1.2.2 - 2024-06-16
 - Se ampliaron los modales de LET y Sections para ofrecer más espacio de trabajo y se ajustaron sus controles para ocupar el ancho disponible.
