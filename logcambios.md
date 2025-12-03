@@ -1,5 +1,8 @@
 # Log de cambios
 
+## v1.3.5 - 2025-12-02
+- Se revierte el recorrido de inserción de tesauros y el botón secundario asociado en el modal de inicio, dejando el tutorial únicamente con el flujo principal previo.
+
 ## v1.2.2 - 2024-06-16
 - Se ampliaron los modales de LET y Sections para ofrecer más espacio de trabajo y se ajustaron sus controles para ocupar el ancho disponible.
 
