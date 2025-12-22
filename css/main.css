@@ -920,6 +920,41 @@ body {
 }
 
 /* =============================
+   MENÚ CONTEXTUAL
+   ============================= */
+
+.context-menu {
+  position: fixed;
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.18);
+  z-index: 1250;
+  min-width: 220px;
+}
+
+.context-menu-item {
+  border: none;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.context-menu-item:hover {
+  background: #e2e8f0;
+}
+
+/* =============================
    MODAL GENÉRICO
    ============================= */
 

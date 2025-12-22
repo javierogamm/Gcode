@@ -1,5 +1,9 @@
 # Log de cambios
 
+## v1.3.7 - 2025-12-22
+- Se añadió un menú contextual al hacer click derecho sobre texto seleccionado para convertirlo en bloque de doble columna.
+- El modal de doble columna ahora se abre desde el menú contextual precargando la selección en la columna izquierda.
+
 ## v1.3.6 - 2025-12-10
 - Se añadió el botón de doble columna con modal amplio para componer columnas izquierda y derecha en sintaxis Gestiona Code.
 - Se incorporó el resaltado de columnas con colores propios y un toggle dedicado para mostrar/ocultar el bloque.
