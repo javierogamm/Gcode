@@ -1,5 +1,9 @@
 # Log de cambios
 
+## v1.3.8 - 2025-12-29
+- El modal de doble columna mantiene el texto seleccionado sin recortes al abrirse desde el botón.
+- Se evitó cerrar el modal de doble columna al hacer click fuera de él.
+
 ## v1.3.7 - 2025-12-22
 - Se añadió un menú contextual al hacer click derecho sobre texto seleccionado para convertirlo en bloque de doble columna.
 - El modal de doble columna ahora se abre desde el menú contextual precargando la selección en la columna izquierda.

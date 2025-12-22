@@ -370,10 +370,6 @@ function ensureColumnsModal() {
     if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
     if (insertBtn) insertBtn.addEventListener("click", () => insertColumnsFromModal(modal));
 
-    modal.addEventListener("click", (e) => {
-        if (e.target === modal) closeModal();
-    });
-
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && modal.style.display === "flex") {
             closeModal();
@@ -401,7 +397,7 @@ function openColumnsModal() {
     const defaultRight = "**COLUMNA 2**\nEste es el contenido de la columna 2";
 
     if (leftInput) {
-        leftInput.value = selection.trim() ? selection.trim() : defaultLeft;
+        leftInput.value = selection ? selection : defaultLeft;
     }
     if (rightInput) {
         rightInput.value = defaultRight;
