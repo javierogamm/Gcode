@@ -450,6 +450,87 @@ function insertColumnsFromModal(modal) {
 }
 
 /* =======================================
+   MENÚ CONTEXTUAL: DOBLE COLUMNA
+======================================= */
+const columnsContextMenuState = {
+    menu: null
+};
+
+function ensureColumnsContextMenu() {
+    if (columnsContextMenuState.menu) return columnsContextMenuState.menu;
+
+    const menu = document.createElement("div");
+    menu.id = "columnsContextMenu";
+    menu.className = "context-menu";
+    menu.innerHTML = `
+        <button type="button" class="context-menu-item" data-action="columns">
+            🧱 Convertir a doble columna
+        </button>
+    `;
+
+    document.body.appendChild(menu);
+
+    menu.addEventListener("click", (event) => {
+        const action = event.target && event.target.dataset ? event.target.dataset.action : null;
+        if (action === "columns") {
+            closeColumnsContextMenu();
+            openColumnsModal();
+        }
+    });
+
+    columnsContextMenuState.menu = menu;
+    return menu;
+}
+
+function closeColumnsContextMenu() {
+    if (columnsContextMenuState.menu) {
+        columnsContextMenuState.menu.style.display = "none";
+    }
+}
+
+function positionColumnsContextMenu(menu, x, y) {
+    const rect = menu.getBoundingClientRect();
+    const padding = 12;
+    const maxX = window.innerWidth - rect.width - padding;
+    const maxY = window.innerHeight - rect.height - padding;
+    const left = Math.min(x, maxX);
+    const top = Math.min(y, maxY);
+
+    menu.style.left = `${Math.max(padding, left)}px`;
+    menu.style.top = `${Math.max(padding, top)}px`;
+}
+
+markdownText.addEventListener("contextmenu", (event) => {
+    const selection = markdownText.value.slice(
+        markdownText.selectionStart,
+        markdownText.selectionEnd
+    );
+    if (!selection.trim()) return;
+
+    event.preventDefault();
+
+    const menu = ensureColumnsContextMenu();
+    menu.style.display = "block";
+    positionColumnsContextMenu(menu, event.clientX, event.clientY);
+});
+
+document.addEventListener("click", (event) => {
+    if (!columnsContextMenuState.menu) return;
+    if (columnsContextMenuState.menu.style.display !== "block") return;
+    if (columnsContextMenuState.menu.contains(event.target)) return;
+    closeColumnsContextMenu();
+});
+
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+        closeColumnsContextMenu();
+    }
+});
+
+window.addEventListener("scroll", () => closeColumnsContextMenu(), true);
+window.addEventListener("resize", () => closeColumnsContextMenu());
+
+/* =======================================
    BOTONES LATERALES
 ======================================= */
 
