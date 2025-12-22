@@ -291,6 +291,11 @@ function applyMarkdownFormat(type) {
         case "table":
             formatted = createMarkdownTable();
             break;
+
+        // --- COLUMNS ---
+        case "columns":
+            openColumnsModal();
+            return;
     }
 
     ta.setRangeText(formatted, start, end, "end");
@@ -306,6 +311,142 @@ function createMarkdownTable() {
 | Valor 1  | Valor 2  |
 `
     );
+}
+
+/* =======================================
+   MODAL DOBLE COLUMNA
+======================================= */
+const columnsModalState = {
+    modal: null,
+    selectionStart: 0,
+    selectionEnd: 0
+};
+
+function ensureColumnsModal() {
+    if (columnsModalState.modal) return columnsModalState.modal;
+
+    const modal = document.createElement("div");
+    modal.id = "columnsModal";
+    modal.className = "modal-overlay";
+    modal.innerHTML = `
+        <div class="modal-card columns-modal-card">
+            <div class="modal-header">
+                <h3>Insertar bloque de doble columna</h3>
+                <button type="button" class="modal-close" aria-label="Cerrar">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin:0;font-size:13px;color:#475569;">
+                    Completa el contenido de cada columna. Se insertará con la sintaxis Gestiona Code.
+                </p>
+                <div class="columns-grid">
+                    <label class="form-row">
+                        <span>Columna izquierda</span>
+                        <textarea id="columnsLeftInput" class="columns-textarea" placeholder="Contenido de la columna izquierda"></textarea>
+                    </label>
+                    <label class="form-row">
+                        <span>Columna derecha</span>
+                        <textarea id="columnsRightInput" class="columns-textarea" placeholder="Contenido de la columna derecha"></textarea>
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" data-action="cancelar">Cancelar</button>
+                    <button type="button" class="btn-primary" data-action="insertar">Insertar columnas</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const closeModal = () => {
+        modal.style.display = "none";
+    };
+
+    const closeBtn = modal.querySelector(".modal-close");
+    const cancelBtn = modal.querySelector("[data-action='cancelar']");
+    const insertBtn = modal.querySelector("[data-action='insertar']");
+
+    if (closeBtn) closeBtn.addEventListener("click", closeModal);
+    if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+    if (insertBtn) insertBtn.addEventListener("click", () => insertColumnsFromModal(modal));
+
+    modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && modal.style.display === "flex") {
+            closeModal();
+        }
+    });
+
+    columnsModalState.modal = modal;
+    return modal;
+}
+
+function openColumnsModal() {
+    const modal = ensureColumnsModal();
+    const leftInput = modal.querySelector("#columnsLeftInput");
+    const rightInput = modal.querySelector("#columnsRightInput");
+
+    const ta = markdownText;
+    columnsModalState.selectionStart = ta.selectionStart || 0;
+    columnsModalState.selectionEnd = ta.selectionEnd || 0;
+    const selection = ta.value.slice(
+        columnsModalState.selectionStart,
+        columnsModalState.selectionEnd
+    );
+
+    const defaultLeft = "**COLUMNA 1**\nEste es el contenido de la columna 1";
+    const defaultRight = "**COLUMNA 2**\nEste es el contenido de la columna 2";
+
+    if (leftInput) {
+        leftInput.value = selection.trim() ? selection.trim() : defaultLeft;
+    }
+    if (rightInput) {
+        rightInput.value = defaultRight;
+    }
+
+    modal.style.display = "flex";
+    if (leftInput) leftInput.focus();
+}
+
+function normalizeColumnContent(value, fallback) {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : fallback;
+}
+
+function insertColumnsFromModal(modal) {
+    const ta = markdownText;
+    const leftInput = modal.querySelector("#columnsLeftInput");
+    const rightInput = modal.querySelector("#columnsRightInput");
+
+    const leftValue = normalizeColumnContent(
+        leftInput ? leftInput.value : "",
+        "**COLUMNA 1**\nEste es el contenido de la columna 1"
+    );
+    const rightValue = normalizeColumnContent(
+        rightInput ? rightInput.value : "",
+        "**COLUMNA 2**\nEste es el contenido de la columna 2"
+    );
+
+    const block = `[columns:block]\n${leftValue}\n[columns:split]\n${rightValue}\n[columns]`;
+
+    const start = columnsModalState.selectionStart || 0;
+    const end = columnsModalState.selectionEnd || start;
+    const before = ta.value.slice(0, start);
+    const after = ta.value.slice(end);
+
+    ta.value = before + block + after;
+    const cursorPos = before.length + block.length;
+    ta.selectionStart = cursorPos;
+    ta.selectionEnd = cursorPos;
+    ta.focus();
+
+    recordUndoAfterChange(ta);
+    updateHighlight();
+
+    modal.style.display = "none";
 }
 
 /* =======================================
@@ -852,6 +993,7 @@ highlighter.id = "mdHighlighter";
 let highlightSections = true; // amarillo / rojo
 let highlightTesauros = true; // verde
 let highlightLet       = true;
+let highlightColumns   = true;
 // El contenedor (#workContainer) ya existe
 if (markdownText.parentElement) {
     const parent = markdownText.parentElement;
@@ -894,6 +1036,10 @@ if (markdownText.parentElement) {
                 <input id="toggleLet" type="checkbox" checked style="margin:0;" />
                 <span>LET/Def</span>
             </label>
+            <label style="display:flex;align-items:center;gap:3px;cursor:pointer;">
+                <input id="toggleColumns" type="checkbox" checked style="margin:0;" />
+                <span>Columnas</span>
+            </label>
         `;
 
         parent.appendChild(tbox);
@@ -902,11 +1048,12 @@ if (markdownText.parentElement) {
         const chkSec = tbox.querySelector("#toggleSections");
         const chkTes = tbox.querySelector("#toggleTesauros");
         const chkLet = tbox.querySelector("#toggleLet");
+        const chkCol = tbox.querySelector("#toggleColumns");
 
         const refreshAllState = () => {
             if (!chkAll) return;
-            const allOn = highlightSections && highlightTesauros && highlightLet;
-            const anyOn = highlightSections || highlightTesauros || highlightLet;
+            const allOn = highlightSections && highlightTesauros && highlightLet && highlightColumns;
+            const anyOn = highlightSections || highlightTesauros || highlightLet || highlightColumns;
             chkAll.checked = allOn;
             chkAll.indeterminate = !allOn && anyOn;
         };
@@ -917,10 +1064,12 @@ if (markdownText.parentElement) {
                 highlightSections = enabled;
                 highlightTesauros = enabled;
                 highlightLet = enabled;
+                highlightColumns = enabled;
 
                 if (chkSec) chkSec.checked = enabled;
                 if (chkTes) chkTes.checked = enabled;
                 if (chkLet) chkLet.checked = enabled;
+                if (chkCol) chkCol.checked = enabled;
 
                 chkAll.indeterminate = false;
                 updateHighlight();
@@ -943,6 +1092,13 @@ if (markdownText.parentElement) {
         if (chkLet) {
             chkLet.addEventListener("change", () => {
                 highlightLet = chkLet.checked;
+                refreshAllState();
+                updateHighlight();
+            });
+        }
+        if (chkCol) {
+            chkCol.addEventListener("change", () => {
+                highlightColumns = chkCol.checked;
                 refreshAllState();
                 updateHighlight();
             });
@@ -1176,6 +1332,21 @@ function updateHighlight() {
                 function (matchTesauro) {
                     const safeMatch = matchTesauro.replace(/&/g, "&amp;");
                     return '<span class="tesauro-block">' + safeMatch + '</span>';
+                }
+            );
+        }
+
+        if (typeof highlightColumns === "undefined" || highlightColumns) {
+            safe = safe.replace(
+                /\[columns:block\]([\s\S]*?)\[columns:split\]([\s\S]*?)\[columns\]/g,
+                function (matchColumns, leftContent, rightContent) {
+                    return (
+                        '<span class="columns-left-block">[columns:block]' +
+                        leftContent +
+                        '</span><span class="columns-right-block">[columns:split]' +
+                        rightContent +
+                        '[columns]</span>'
+                    );
                 }
             );
         }

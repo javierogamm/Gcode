@@ -37,6 +37,15 @@ body {
   color: #f9fafb;
 }
 
+#leftPanel .app-version {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
 #leftPanel .btn {
   padding: 10px 12px;
   border-radius: 10px;
@@ -143,6 +152,22 @@ body {
 .tesauro-block {
     background: rgba(34, 197, 94, 0.25);
     box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.4);
+    border-radius: 4px;
+    padding: 0;
+    color: transparent;
+}
+
+.columns-left-block {
+    background: rgba(216, 180, 254, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(167, 139, 250, 0.55);
+    border-radius: 4px;
+    padding: 0;
+    color: transparent;
+}
+
+.columns-right-block {
+    background: rgba(199, 210, 254, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(129, 140, 248, 0.55);
     border-radius: 4px;
     padding: 0;
     color: transparent;
@@ -920,6 +945,10 @@ body {
   border: 1px solid #e5e7eb;
 }
 
+.columns-modal-card {
+  width: min(980px, 100%);
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -990,6 +1019,31 @@ body {
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+
+.columns-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.columns-textarea {
+  min-height: 180px;
+  resize: vertical;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 14px;
+  font-family: Consolas, monospace;
+  color: #0f172a;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.columns-textarea:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
 }
 
 .modal-actions {

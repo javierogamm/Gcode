@@ -1,5 +1,10 @@
 # Log de cambios
 
+## v1.3.6 - 2025-12-10
+- Se añadió el botón de doble columna con modal amplio para componer columnas izquierda y derecha en sintaxis Gestiona Code.
+- Se incorporó el resaltado de columnas con colores propios y un toggle dedicado para mostrar/ocultar el bloque.
+- Se mostró la versión de la app en la interfaz principal.
+
 ## v1.3.5 - 2025-12-02
 - Se revierte el recorrido de inserción de tesauros y el botón secundario asociado en el modal de inicio, dejando el tutorial únicamente con el flujo principal previo.
 
