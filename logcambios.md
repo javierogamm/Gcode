@@ -1,5 +1,9 @@
 # Log de cambios
 
+## v1.3.9 - 2025-03-05
+- Se añadió un panel de números de línea sincronizado con el editor Markdown.
+- El área de edición ahora integra un contenedor con gutter para mantener alineado el contenido y el resaltado.
+
 ## v1.3.8 - 2025-12-29
 - El modal de doble columna mantiene el texto seleccionado sin recortes al abrirse desde el botón.
 - Se evitó cerrar el modal de doble columna al hacer click fuera de él.
