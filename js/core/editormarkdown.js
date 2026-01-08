@@ -22,6 +22,7 @@ function updateLineNumbers() {
     }
     lineNumbers.innerHTML = html;
     lineNumbers.style.height = markdownText.scrollHeight + "px";
+    lineNumbers.scrollTop = markdownText.scrollTop;
 }
 
 // Barra de acciones flotantes (Sections, LET, Definition, Tesauro)

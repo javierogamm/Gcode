@@ -107,20 +107,16 @@ body {
   flex-direction: column;
   gap: 8px;
   overflow: hidden;
-}
-
-#editorWrapper {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  background: #fff;
+  position: relative; /* para overlay + números */
 }
 
 #lineNumbers {
-  width: 48px;
-  padding: 12px 8px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 44px;
+  padding: 12px 6px;
   background: #f8fafc;
   color: #94a3b8;
   font-family: Consolas, monospace;
@@ -130,25 +126,22 @@ body {
   border-right: 1px solid #e2e8f0;
   overflow: hidden;
   user-select: none;
+  pointer-events: none;
+  z-index: 3;
 }
 
 .line-number {
   height: 1.4em;
 }
 
-#editorArea {
-  flex: 1;
-  position: relative; /* overlay */
-  overflow: hidden;
-}
-
 /* Editor markdown único */
 /* TEXTAREA */
 #markdownText {
     flex: 1;
-    border: none;
+    border: 1px solid #ccc;
     background: transparent;
-    padding: 12px;
+    padding: 12px 12px 12px 58px;
+    border-radius: 8px;
     font-size: 14px;
     font-family: Consolas, monospace;
     resize: none;
@@ -166,7 +159,7 @@ body {
 #mdHighlighter {
     position: absolute;
     inset: 0;
-    padding: 12px;
+    padding: 12px 12px 12px 58px;
     font-family: Consolas, monospace;
     font-size: 14px;
     white-space: pre-wrap;

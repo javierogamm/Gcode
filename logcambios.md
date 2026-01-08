@@ -1,5 +1,9 @@
 # Log de cambios
 
+## v1.3.10 - 2025-03-05
+- Se añadieron números de línea como overlay sin modificar el layout del editor.
+- Se mantuvo el textarea original, ajustando únicamente el padding interno para respetar el gutter.
+
 ## v1.3.9 - 2025-03-05
 - Se añadió un panel de números de línea sincronizado con el editor Markdown.
 - El área de edición ahora integra un contenedor con gutter para mantener alineado el contenido y el resaltado.
