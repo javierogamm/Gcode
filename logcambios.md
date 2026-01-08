@@ -1,5 +1,8 @@
 # Log de cambios
 
+## v1.3.11 - 2025-03-05
+- Se ajustó el ancho del gutter para alinear los overlays de resaltado con el texto del editor.
+
 ## v1.3.10 - 2025-03-05
 - Se añadieron números de línea como overlay sin modificar el layout del editor.
 - Se mantuvo el textarea original, ajustando únicamente el padding interno para respetar el gutter.
