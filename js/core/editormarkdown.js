@@ -1514,6 +1514,9 @@ function updateHighlight() {
     const offsetY = markdownText.scrollTop;
     const offsetX = markdownText.scrollLeft || 0;
     hl.style.transform = "translate(" + (-offsetX) + "px, " + (-offsetY) + "px)";
+    if (lineNumbers) {
+        lineNumbers.style.transform = "translateY(" + (-offsetY) + "px)";
+    }
 
     updateLineNumbers();
 }
@@ -1529,7 +1532,7 @@ markdownText.addEventListener("scroll", function () {
         hl.style.transform = "translate(" + (-offsetX) + "px, " + (-offsetY) + "px)";
     }
     if (lineNumbers) {
-        lineNumbers.scrollTop = offsetY;
+        lineNumbers.style.transform = "translateY(" + (-offsetY) + "px)";
     }
 });
 

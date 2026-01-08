@@ -1,5 +1,8 @@
 # Log de cambios
 
+## v1.3.12 - 2025-03-05
+- Se sincronizó el desplazamiento de los números de línea con el overlay del editor.
+
 ## v1.3.11 - 2025-03-05
 - Se ajustó el ancho del gutter para alinear los overlays de resaltado con el texto del editor.
 
