@@ -107,7 +107,31 @@ body {
   flex-direction: column;
   gap: 8px;
   overflow: hidden;
-  position: relative; /* para el overlay */
+  position: relative; /* para overlay + números */
+}
+
+#lineNumbers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 40px;
+  padding: 12px 8px;
+  background: #f8fafc;
+  color: #94a3b8;
+  font-family: Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: right;
+  border-right: 1px solid #e2e8f0;
+  overflow: hidden;
+  user-select: none;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.line-number {
+  height: 1.4em;
 }
 
 /* Editor markdown único */
@@ -116,7 +140,7 @@ body {
     flex: 1;
     border: 1px solid #ccc;
     background: transparent;
-    padding: 12px;
+    padding: 12px 12px 12px 56px;
     border-radius: 8px;
     font-size: 14px;
     font-family: Consolas, monospace;
@@ -135,7 +159,7 @@ body {
 #mdHighlighter {
     position: absolute;
     inset: 0;
-    padding: 12px;
+    padding: 12px 12px 12px 56px;
     font-family: Consolas, monospace;
     font-size: 14px;
     white-space: pre-wrap;

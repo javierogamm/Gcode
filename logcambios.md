@@ -1,5 +1,16 @@
 # Log de cambios
 
+## v1.3.11 - 2025-03-05
+- Se ajustó el ancho del gutter para alinear los overlays de resaltado con el texto del editor.
+
+## v1.3.10 - 2025-03-05
+- Se añadieron números de línea como overlay sin modificar el layout del editor.
+- Se mantuvo el textarea original, ajustando únicamente el padding interno para respetar el gutter.
+
+## v1.3.9 - 2025-03-05
+- Se añadió un panel de números de línea sincronizado con el editor Markdown.
+- El área de edición ahora integra un contenedor con gutter para mantener alineado el contenido y el resaltado.
+
 ## v1.3.8 - 2025-12-29
 - El modal de doble columna mantiene el texto seleccionado sin recortes al abrirse desde el botón.
 - Se evitó cerrar el modal de doble columna al hacer click fuera de él.
