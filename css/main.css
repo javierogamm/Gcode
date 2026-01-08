@@ -130,6 +130,11 @@ body {
   z-index: 3;
 }
 
+.line-numbers-content {
+  position: relative;
+  will-change: transform;
+}
+
 .line-number {
   height: 1.4em;
 }

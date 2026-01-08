@@ -1,5 +1,8 @@
 # Log de cambios
 
+## v1.3.13 - 2025-03-05
+- Se corrigió el scroll de los números de línea para que no se recorten en la parte inferior.
+
 ## v1.3.12 - 2025-03-05
 - Se sincronizó el desplazamiento de los números de línea con el overlay del editor.
 
