@@ -13,16 +13,33 @@ const btnExportProyecto = document.getElementById("btnExportProyecto");
 const btnImportProyecto = document.getElementById("btnImportProyecto");
 const btnExportCsv = document.getElementById("btnExportCsv");
 
+function ensureLineNumbersContent() {
+    if (!lineNumbers) return null;
+    let content = lineNumbers.querySelector(".line-numbers-content");
+    if (!content) {
+        content = document.createElement("div");
+        content.className = "line-numbers-content";
+        lineNumbers.appendChild(content);
+    }
+    return content;
+}
+
 function updateLineNumbers() {
     if (!lineNumbers || !markdownText) return;
-    const lineCount = Math.max(1, markdownText.value.split("\n").length);
+    const content = ensureLineNumbersContent();
+    if (!content) return;
+    const computedStyles = window.getComputedStyle(markdownText);
+    let lineHeight = parseFloat(computedStyles.lineHeight);
+    if (!Number.isFinite(lineHeight) || lineHeight <= 0) {
+        lineHeight = 20;
+    }
+    const visualLineCount = Math.max(1, Math.ceil(markdownText.scrollHeight / lineHeight));
     let html = "";
-    for (let i = 1; i <= lineCount; i++) {
+    for (let i = 1; i <= visualLineCount; i++) {
         html += `<div class="line-number">${i}</div>`;
     }
-    lineNumbers.innerHTML = html;
-    lineNumbers.style.height = markdownText.scrollHeight + "px";
-    lineNumbers.scrollTop = markdownText.scrollTop;
+    content.innerHTML = html;
+    content.style.height = markdownText.scrollHeight + "px";
 }
 
 // Barra de acciones flotantes (Sections, LET, Definition, Tesauro)
@@ -1506,14 +1523,18 @@ function updateHighlight() {
     hl.style.bottom = "auto";          // anula bottom de inset:0 del CSS
     hl.style.height = contentHeight + "px";
     hl.style.overflow = "visible";
-    if (lineNumbers) {
-        lineNumbers.style.height = contentHeight + "px";
+    const lineNumbersContent = ensureLineNumbersContent();
+    if (lineNumbersContent) {
+        lineNumbersContent.style.height = contentHeight + "px";
     }
 
     // Scroll sincronizado: movemos el overlay en sentido contrario
     const offsetY = markdownText.scrollTop;
     const offsetX = markdownText.scrollLeft || 0;
     hl.style.transform = "translate(" + (-offsetX) + "px, " + (-offsetY) + "px)";
+    if (lineNumbersContent) {
+        lineNumbersContent.style.transform = "translateY(" + (-offsetY) + "px)";
+    }
 
     updateLineNumbers();
 }
@@ -1528,8 +1549,9 @@ markdownText.addEventListener("scroll", function () {
     if (hl) {
         hl.style.transform = "translate(" + (-offsetX) + "px, " + (-offsetY) + "px)";
     }
-    if (lineNumbers) {
-        lineNumbers.scrollTop = offsetY;
+    const lineNumbersContent = ensureLineNumbersContent();
+    if (lineNumbersContent) {
+        lineNumbersContent.style.transform = "translateY(" + (-offsetY) + "px)";
     }
 });
 

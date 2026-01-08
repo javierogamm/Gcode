@@ -1,5 +1,14 @@
 # Log de cambios
 
+## v1.3.14 - 2026-01-08
+- Se calcularon los números de línea en base a las líneas visuales para mantenerlos visibles cuando hay saltos automáticos por ajuste de texto.
+
+## v1.3.13 - 2025-03-05
+- Se corrigió el scroll de los números de línea para que no se recorten en la parte inferior.
+
+## v1.3.12 - 2025-03-05
+- Se sincronizó el desplazamiento de los números de línea con el overlay del editor.
+
 ## v1.3.11 - 2025-03-05
 - Se ajustó el ancho del gutter para alinear los overlays de resaltado con el texto del editor.
 
