@@ -28,9 +28,14 @@ function updateLineNumbers() {
     if (!lineNumbers || !markdownText) return;
     const content = ensureLineNumbersContent();
     if (!content) return;
-    const lineCount = Math.max(1, markdownText.value.split("\n").length);
+    const computedStyles = window.getComputedStyle(markdownText);
+    let lineHeight = parseFloat(computedStyles.lineHeight);
+    if (!Number.isFinite(lineHeight) || lineHeight <= 0) {
+        lineHeight = 20;
+    }
+    const visualLineCount = Math.max(1, Math.ceil(markdownText.scrollHeight / lineHeight));
     let html = "";
-    for (let i = 1; i <= lineCount; i++) {
+    for (let i = 1; i <= visualLineCount; i++) {
         html += `<div class="line-number">${i}</div>`;
     }
     content.innerHTML = html;
