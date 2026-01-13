@@ -1287,6 +1287,9 @@ function updateHighlight() {
 
     const hl = document.getElementById("mdHighlighter");
     if (!hl) return;
+    const scrollbarWidth = markdownText.offsetWidth - markdownText.clientWidth;
+    const basePaddingRight = 12;
+    hl.style.paddingRight = (basePaddingRight + Math.max(0, scrollbarWidth)) + "px";
 
     // Escapar HTML básico
     function escapeHtml(str) {
