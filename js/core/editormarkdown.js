@@ -381,6 +381,7 @@ function ensureColumnsModal() {
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" data-action="cancelar">Cancelar</button>
+                    <button type="button" class="btn-secondary" data-action="switch">Intercambiar columnas</button>
                     <button type="button" class="btn-primary" data-action="insertar">Insertar columnas</button>
                 </div>
             </div>
@@ -395,10 +396,12 @@ function ensureColumnsModal() {
 
     const closeBtn = modal.querySelector(".modal-close");
     const cancelBtn = modal.querySelector("[data-action='cancelar']");
+    const switchBtn = modal.querySelector("[data-action='switch']");
     const insertBtn = modal.querySelector("[data-action='insertar']");
 
     if (closeBtn) closeBtn.addEventListener("click", closeModal);
     if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+    if (switchBtn) switchBtn.addEventListener("click", () => swapColumnsInputs(modal));
     if (insertBtn) insertBtn.addEventListener("click", () => insertColumnsFromModal(modal));
 
     document.addEventListener("keydown", (e) => {
@@ -409,6 +412,17 @@ function ensureColumnsModal() {
 
     columnsModalState.modal = modal;
     return modal;
+}
+
+function swapColumnsInputs(modal) {
+    const leftInput = modal.querySelector("#columnsLeftInput");
+    const rightInput = modal.querySelector("#columnsRightInput");
+    if (!leftInput || !rightInput) return;
+
+    const leftValue = leftInput.value;
+    leftInput.value = rightInput.value;
+    rightInput.value = leftValue;
+    leftInput.focus();
 }
 
 function openColumnsModal() {
@@ -427,15 +441,60 @@ function openColumnsModal() {
     const defaultLeft = "**COLUMNA 1**\nEste es el contenido de la columna 1";
     const defaultRight = "**COLUMNA 2**\nEste es el contenido de la columna 2";
 
+    const matchedColumns = findColumnsBlockAtSelection(
+        ta.value,
+        columnsModalState.selectionStart,
+        columnsModalState.selectionEnd
+    );
+
+    if (matchedColumns) {
+        columnsModalState.selectionStart = matchedColumns.blockStart;
+        columnsModalState.selectionEnd = matchedColumns.blockEnd;
+    }
+
     if (leftInput) {
-        leftInput.value = selection ? selection : defaultLeft;
+        leftInput.value = matchedColumns
+            ? matchedColumns.left
+            : selection
+            ? selection
+            : defaultLeft;
     }
     if (rightInput) {
-        rightInput.value = defaultRight;
+        rightInput.value = matchedColumns ? matchedColumns.right : defaultRight;
     }
 
     modal.style.display = "flex";
     if (leftInput) leftInput.focus();
+}
+
+function findColumnsBlockAtSelection(content, selectionStart, selectionEnd) {
+    if (!content) return null;
+    const start = Math.min(selectionStart, selectionEnd);
+    const end = Math.max(selectionStart, selectionEnd);
+    const matcher = /\[columns:block\]([\s\S]*?)\[columns:split\]([\s\S]*?)\[columns\]/g;
+    let match;
+
+    while ((match = matcher.exec(content)) !== null) {
+        const blockStart = match.index;
+        const blockEnd = blockStart + match[0].length;
+        const isCursorInside = start === end && start >= blockStart && start <= blockEnd;
+        const isSelectionOverlapping = start !== end && start <= blockEnd && end >= blockStart;
+
+        if (isCursorInside || isSelectionOverlapping) {
+            return {
+                left: normalizeColumnsCapturedValue(match[1]),
+                right: normalizeColumnsCapturedValue(match[2]),
+                blockStart,
+                blockEnd
+            };
+        }
+    }
+
+    return null;
+}
+
+function normalizeColumnsCapturedValue(value) {
+    return value.replace(/^\n+|\n+$/g, "");
 }
 
 function normalizeColumnContent(value, fallback) {
