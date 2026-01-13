@@ -381,6 +381,7 @@ function ensureColumnsModal() {
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" data-action="cancelar">Cancelar</button>
+                    <button type="button" class="btn-secondary" data-action="switch">Intercambiar columnas</button>
                     <button type="button" class="btn-primary" data-action="insertar">Insertar columnas</button>
                 </div>
             </div>
@@ -395,10 +396,12 @@ function ensureColumnsModal() {
 
     const closeBtn = modal.querySelector(".modal-close");
     const cancelBtn = modal.querySelector("[data-action='cancelar']");
+    const switchBtn = modal.querySelector("[data-action='switch']");
     const insertBtn = modal.querySelector("[data-action='insertar']");
 
     if (closeBtn) closeBtn.addEventListener("click", closeModal);
     if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+    if (switchBtn) switchBtn.addEventListener("click", () => swapColumnsInputs(modal));
     if (insertBtn) insertBtn.addEventListener("click", () => insertColumnsFromModal(modal));
 
     document.addEventListener("keydown", (e) => {
@@ -409,6 +412,17 @@ function ensureColumnsModal() {
 
     columnsModalState.modal = modal;
     return modal;
+}
+
+function swapColumnsInputs(modal) {
+    const leftInput = modal.querySelector("#columnsLeftInput");
+    const rightInput = modal.querySelector("#columnsRightInput");
+    if (!leftInput || !rightInput) return;
+
+    const leftValue = leftInput.value;
+    leftInput.value = rightInput.value;
+    rightInput.value = leftValue;
+    leftInput.focus();
 }
 
 function openColumnsModal() {

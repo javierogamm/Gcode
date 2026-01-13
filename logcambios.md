@@ -1,5 +1,8 @@
 # Log de cambios
 
+## v1.3.15 - 2026-01-15
+- Se añadió un botón para intercambiar el contenido de las columnas en el modal de doble columna.
+
 ## v1.3.14 - 2026-01-08
 - Se calcularon los números de línea en base a las líneas visuales para mantenerlos visibles cuando hay saltos automáticos por ajuste de texto.
 
