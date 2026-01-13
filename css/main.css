@@ -169,6 +169,8 @@ body {
     font-size: 14px;
     white-space: pre-wrap;
     word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
     line-height: 1.4;
     color: transparent;
     background: transparent !important;
