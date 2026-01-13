@@ -1,11 +1,5 @@
 # Log de cambios
 
-## v1.3.19 - 2026-01-20
-- Se ajustó el padding del overlay para compensar el ancho de la barra de scroll y mantener el resaltado alineado en textos largos.
-
-## v1.3.18 - 2026-01-20
-- Se igualó el comportamiento de quiebre de palabras del overlay con el textarea para evitar desajustes en los resaltados.
-
 ## v1.3.17 - 2026-01-20
 - Se ajustó el resaltado para que los bloques de tesauros, secciones y utilidades rompan líneas igual que el textarea y eviten desajustes del overlay.
 
