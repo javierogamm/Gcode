@@ -1,5 +1,8 @@
 # Log de cambios
 
+## v1.3.16 - 2026-01-15
+- El modal de doble columna ahora detecta el bloque completo cuando el cursor o la selección están dentro, cargando cada columna en su campo correspondiente.
+
 ## v1.3.15 - 2026-01-15
 - Se añadió un botón para intercambiar el contenido de las columnas en el modal de doble columna.
 
