@@ -733,6 +733,17 @@ body {
     box-shadow: inset 0 0 0 1px rgba(120, 160, 255, 0.40);
 }
 
+.tesauro-block,
+.columns-left-block,
+.columns-right-block,
+.section-block,
+.section-error-block,
+.let-block,
+.definition-block {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
 /* Fila seleccionada en el Gestor de Tesauros */
 #tesauroManagerModal .tm-row-selected {
     background-color: #e0f2fe;      /* azul clarito pálido */
