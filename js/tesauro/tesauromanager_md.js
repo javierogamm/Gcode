@@ -43,6 +43,14 @@ const TesauroManager = {
     selectedRows: new Set(),
     lastSelectedRow: null,
 
+    // 🔹 Historial de cambios (undo/redo)
+    historyStack: [],
+    redoStack: [],
+    isRestoring: false,
+    maxHistory: 50,
+    btnUndo: null,
+    btnRedo: null,
+
     /* ---------------------------------------------
        Inicializar (solo una vez)
     --------------------------------------------- */
@@ -76,6 +84,38 @@ const TesauroManager = {
         box-shadow:0 6px 20px rgba(0,0,0,0.35);
         overflow:hidden;
     ">
+    <div id="tmHistoryControls" style="
+    position:absolute;
+    top:50px;
+    left:64px;
+    display:flex;
+    gap:8px;
+">    
+    <button id="tmUndo" style="
+    background:#e0f2fe;
+    border:1px solid #38bdf8;
+    color:#0f172a;
+    width:32px;
+    height:32px;
+    border-radius:999px;
+    cursor:pointer;
+    font-size:16px;
+    font-weight:bold;
+    box-shadow:0 2px 6px rgba(0,0,0,0.15);
+">↩️</button>
+    <button id="tmRedo" style="
+    background:#e0f2fe;
+    border:1px solid #38bdf8;
+    color:#0f172a;
+    width:32px;
+    height:32px;
+    border-radius:999px;
+    cursor:pointer;
+    font-size:16px;
+    font-weight:bold;
+    box-shadow:0 2px 6px rgba(0,0,0,0.15);
+">↪️</button>
+    </div>
     <button id="tmCloseX" style=" 
     position:absolute;
     top:50px;
@@ -151,8 +191,8 @@ const TesauroManager = {
 
             <button id="tmOpenCsvImport" style="
                 flex:1;
-                background:#f0f9ff;
-                border:1px solid #0284c7;
+                background:#dbeafe;
+                border:1px solid #3b82f6;
                 border-radius:6px;
                 padding:10px;
                 cursor:pointer;
@@ -164,8 +204,8 @@ const TesauroManager = {
             <!-- *** NUEVO: Importar tesauros desde Markdown -->
             <button id="tmOpenMdImport" style="
                 flex:1;
-                background:#ecfdf5;
-                border:1px solid #22c55e;
+                background:#dbeafe;
+                border:1px solid #3b82f6;
                 border-radius:6px;
                 padding:10px;
                 cursor:pointer;
@@ -368,7 +408,7 @@ const TesauroManager = {
                 <input id="tmCreateRefInput" type="text" style="
                     width:100%; padding:6px; border-radius:6px; border:1px solid #cbd5e1;
                     font-size:13px;
-                " placeholder="Referencia">
+                " placeholder="Referencia" maxlength="40">
 
                 <label style="font-size:13px; color:#111827;">Crear referencia</label>
                 <select id="tmCreateRef" style="
@@ -407,6 +447,8 @@ const TesauroManager = {
         this.btnOpenMdImport = div.querySelector("#tmOpenMdImport");  // *** NUEVO
         this.exportModal = div.querySelector("#tmExportModal");
         this.createModal = div.querySelector("#tmCreateModal");
+        this.btnUndo = div.querySelector("#tmUndo");
+        this.btnRedo = div.querySelector("#tmRedo");
 
         // Eventos básicos
         this.btnClose.addEventListener("click", () => this.close());
@@ -416,6 +458,12 @@ const TesauroManager = {
             }
         this.btnSave.addEventListener("click", () => this.save());
         this.btnOpenRefPopup.addEventListener("click", () => this.openRefPopup());
+        if (this.btnUndo) {
+            this.btnUndo.addEventListener("click", () => this.undo());
+        }
+        if (this.btnRedo) {
+            this.btnRedo.addEventListener("click", () => this.redo());
+        }
 
         const btnNewTesauro = div.querySelector("#tmNewTesauro");
         if (btnNewTesauro) {
@@ -492,6 +540,10 @@ const TesauroManager = {
 
             if (createRefInput) {
                 createRefInput.addEventListener("input", () => {
+                    const limited = this.limitReferenceLength(createRefInput.value);
+                    if (createRefInput.value !== limited) {
+                        createRefInput.value = limited;
+                    }
                     this.createRefEdited = true;
                 });
             }
@@ -543,6 +595,9 @@ const TesauroManager = {
     open() {
         this.init();
         this.render();
+        this.historyStack = [this.cloneCampos()];
+        this.redoStack = [];
+        this.updateUndoRedoButtons();
         this.modal.style.display = "flex";
     },
 
@@ -551,6 +606,72 @@ const TesauroManager = {
     --------------------------------------------- */
     close() {
         if (this.modal) this.modal.style.display = "none";
+    },
+
+    /* ---------------------------------------------
+       Historial de cambios
+    --------------------------------------------- */
+    cloneCampos() {
+        const campos = Array.isArray(DataTesauro?.campos) ? DataTesauro.campos : [];
+        return JSON.parse(JSON.stringify(campos));
+    },
+
+    updateUndoRedoButtons() {
+        if (this.btnUndo) {
+            const canUndo = this.historyStack.length > 1;
+            this.btnUndo.disabled = !canUndo;
+            this.btnUndo.style.opacity = canUndo ? "1" : "0.4";
+            this.btnUndo.style.cursor = canUndo ? "pointer" : "not-allowed";
+        }
+        if (this.btnRedo) {
+            const canRedo = this.redoStack.length > 0;
+            this.btnRedo.disabled = !canRedo;
+            this.btnRedo.style.opacity = canRedo ? "1" : "0.4";
+            this.btnRedo.style.cursor = canRedo ? "pointer" : "not-allowed";
+        }
+    },
+
+    recordHistory() {
+        if (this.isRestoring) return;
+        const snapshot = this.cloneCampos();
+        const last = this.historyStack[this.historyStack.length - 1];
+        if (last && JSON.stringify(last) === JSON.stringify(snapshot)) {
+            return;
+        }
+        this.historyStack.push(snapshot);
+        if (this.historyStack.length > this.maxHistory) {
+            this.historyStack.shift();
+        }
+        this.redoStack = [];
+        this.updateUndoRedoButtons();
+    },
+
+    applySnapshot(snapshot) {
+        this.isRestoring = true;
+        DataTesauro.campos = JSON.parse(JSON.stringify(snapshot || []));
+        this.isRestoring = false;
+        this.render();
+        if (typeof DataTesauro.renderList === "function") {
+            DataTesauro.renderList();
+        } else if (typeof DataTesauro.render === "function") {
+            DataTesauro.render();
+        }
+        this.updateUndoRedoButtons();
+    },
+
+    undo() {
+        if (this.historyStack.length <= 1) return;
+        const current = this.historyStack.pop();
+        this.redoStack.push(current);
+        const previous = this.historyStack[this.historyStack.length - 1];
+        this.applySnapshot(previous);
+    },
+
+    redo() {
+        if (!this.redoStack.length) return;
+        const next = this.redoStack.pop();
+        this.historyStack.push(JSON.parse(JSON.stringify(next)));
+        this.applySnapshot(next);
     },
 
     /* ============================================================
@@ -650,6 +771,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
 
                 this.mergeImportedCampos(nuevos);
                 this.render();
+                this.recordHistory();
 
                 alert("✔ Importados " + nuevos.length + " tesauros desde texto.");
                 this.importModal.style.display = "none";
@@ -797,8 +919,9 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
                     : [];
 
                 refs.forEach(ref => {
+                    const refLimited = this.limitReferenceLength(ref);
                     const existing = existentes.find(c =>
-                        (c.ref || "").toLowerCase() === ref.toLowerCase()
+                        (c.ref || "").toLowerCase() === refLimited.toLowerCase()
                     ) || {};
 
                     const tr = document.createElement("tr");
@@ -811,11 +934,18 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
                     const inpRef = document.createElement("input");
                     inpRef.type = "text";
                     inpRef.className = "tmMd-ref";
-                    inpRef.value = ref;
+                    inpRef.value = refLimited;
+                    inpRef.maxLength = 40;
                     inpRef.style.width = "100%";
                     inpRef.style.padding = "3px";
                     inpRef.style.border = "1px solid #cbd5e1";
                     inpRef.style.borderRadius = "4px";
+                    inpRef.addEventListener("input", () => {
+                        const limited = this.limitReferenceLength(inpRef.value);
+                        if (inpRef.value !== limited) {
+                            inpRef.value = limited;
+                        }
+                    });
                     tdRef.appendChild(inpRef);
 
                     // Nombre
@@ -928,14 +1058,15 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
                     const momento = (row.querySelector(".tmMd-momento")?.value || "Solicitud");
                     const agrupacion = (row.querySelector(".tmMd-agr")?.value || "Agrupación");
 
-                    if (!ref || !nombre) return;
+                    const refFinal = this.limitReferenceLength(ref);
+                    if (!refFinal || !nombre) return;
 
                     const existing = actuales.find(c =>
-                        (c.ref || "").toLowerCase() === ref.toLowerCase()
+                        (c.ref || "").toLowerCase() === refFinal.toLowerCase()
                     );
 
                     const nuevo = {
-                        ref,
+                        ref: refFinal,
                         nombre,
                         tipo,
                         momento,
@@ -959,6 +1090,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
 
                 this.mergeImportedCampos(nuevos);
                 this.render();
+                this.recordHistory();
 
                 alert("✔ Importados/actualizados " + nuevos.length + " tesauros desde Markdown.");
                 this.markdownImportModal.style.display = "none";
@@ -1092,6 +1224,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
 
             this.mergeImportedCampos(campos);
             this.render();
+            this.recordHistory();
 
             alert(`✔ Importados/actualizados ${campos.length} tesauros desde CSV.`);
             this.csvImportModal.style.display = "none";
@@ -1154,7 +1287,8 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
         if (idx.ref < 0 || idx.nombre < 0 || idx.tipo < 0) return [];
 
         return rows.map(parts => {
-            const ref = (parts[idx.ref] || "").trim();
+            const refRaw = (parts[idx.ref] || "").trim();
+            const ref = this.limitReferenceLength(refRaw);
             if (!ref) return null;
 
             const nombre = (parts[idx.nombre] || "").trim();
@@ -1367,6 +1501,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
             const input = document.createElement("input");
             input.type = "text";
             input.className = "ref-ref-input";
+            input.maxLength = 40;
             input.style.width = "100%";
             input.style.padding = "4px";
             input.style.border = "1px solid #cbd5e1";
@@ -1378,6 +1513,12 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
 
             const refAcotada = this.limitReferenceLength(refSugerida);
             input.value = refAcotada;
+            input.addEventListener("input", () => {
+                const limited = this.limitReferenceLength(input.value);
+                if (input.value !== limited) {
+                    input.value = limited;
+                }
+            });
 
             // si ya existe esa referencia → marcar en rojo
             if (existentes.has(refAcotada.toLowerCase())) {
@@ -1416,7 +1557,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
             const tdNombre = row.querySelector("td[data-nombre]") || row.cells[0];
             const nombre = (tdNombre.dataset.nombre || tdNombre.textContent || "").trim();
             const inputRef = row.querySelector(".ref-ref-input");
-            const ref = (inputRef?.value || "").trim();
+            const ref = this.limitReferenceLength((inputRef?.value || "").trim());
 
             if (!nombre || !ref) return;
 
@@ -1454,6 +1595,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
 
             // refrescar tabla del gestor
             this.render();
+            this.recordHistory();
         }
 
         alert(`✅ Creados ${creados} tesauros nuevos.`);
@@ -1526,7 +1668,7 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
             refText.contentEditable = true;
             refText.dataset.field = "ref";
             refText.dataset.id = c.id;
-            refText.innerText = c.ref || "";
+            refText.innerText = this.limitReferenceLength(c.ref || "");
             refText.style.flex = "1";
             refText.style.minWidth = "0";
             refText.style.outline = "none";
@@ -1681,23 +1823,72 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
             tdDel.style.textAlign = "center";
 
             tdDel.innerHTML = `
-                <button class="tmDelTesauro" data-id="${c.id}" 
-                    style="
-                        background:#fee2e2;
-                        border:1px solid #fca5a5;
-                        color:#991b1b;
-                        padding:4px 8px;
-                        border-radius:4px;
-                        cursor:pointer;
-                        font-weight:bold;
-                    ">
-                    ❌
-                </button>
+                <div style="display:flex; gap:6px; justify-content:center;">
+                    <button class="tmDupTesauro" data-id="${c.id}"
+                        style="
+                            background:#e0f2fe;
+                            border:1px solid #38bdf8;
+                            color:#0f172a;
+                            padding:4px 8px;
+                            border-radius:4px;
+                            cursor:pointer;
+                            font-weight:bold;
+                        ">
+                        📄
+                    </button>
+                    <button class="tmDelTesauro" data-id="${c.id}" 
+                        style="
+                            background:#fee2e2;
+                            border:1px solid #fca5a5;
+                            color:#991b1b;
+                            padding:4px 8px;
+                            border-radius:4px;
+                            cursor:pointer;
+                            font-weight:bold;
+                        ">
+                        ❌
+                    </button>
+                </div>
             `;
 
 row.appendChild(tdDel);
 
             this.table.appendChild(row);
+        });
+
+        // CAMBIOS EN REFERENCIA / NOMBRE (contentEditable)
+        this.modal.querySelectorAll("[contenteditable]").forEach(el => {
+            let startValue = "";
+            el.addEventListener("focus", () => {
+                startValue = el.innerText.trim();
+            });
+            el.addEventListener("input", () => {
+                if (el.dataset.field === "ref") {
+                    const limited = this.limitReferenceLength(el.innerText);
+                    if (el.innerText !== limited) {
+                        el.innerText = limited;
+                    }
+                }
+            });
+            el.addEventListener("blur", () => {
+                const field = el.dataset.field;
+                const id = el.dataset.id;
+                const item = DataTesauro.campos.find(x => x.id === id);
+                if (!item || (field !== "ref" && field !== "nombre")) return;
+
+                let value = el.innerText.trim();
+                if (field === "ref") {
+                    value = this.limitReferenceLength(value);
+                    if (this.hasReference(value, id)) {
+                        alert("Ya existe un tesauro con esa referencia.");
+                        el.innerText = item.ref || "";
+                        return;
+                    }
+                }
+                if (value === startValue) return;
+                item[field] = value;
+                this.recordHistory();
+            });
         });
 
         // CAMBIO INDIVIDUAL DE TIPO (con soporte masivo)
@@ -1721,6 +1912,7 @@ row.appendChild(tdDel);
                     });
 
                     this.render();
+                    this.recordHistory();
 
                     TesauroManager.selectedRows.forEach(id => {
                         const row = TesauroManager.modal.querySelector(`tr[data-id='${id}']`);
@@ -1737,6 +1929,7 @@ row.appendChild(tdDel);
                 applyTipo(item);
 
                 this.render();
+                this.recordHistory();
             });
         });
 
@@ -1745,16 +1938,27 @@ row.appendChild(tdDel);
             sel.addEventListener("change", () => {
                 const id = sel.dataset.id;
                 const item = DataTesauro.campos.find(x => x.id === id);
-                if (item) item.momento = sel.value;
+                if (item) {
+                    item.momento = sel.value;
+                    this.recordHistory();
+                }
             });
         });
 
         // CAMBIOS INDIVIDUALES EN AGRUPACIÓN
         this.modal.querySelectorAll(".tmAgrInput").forEach(inp => {
+            let startValue = "";
+            inp.addEventListener("focus", () => {
+                startValue = inp.value.trim();
+            });
             inp.addEventListener("input", () => {
                 const id = inp.dataset.id;
                 const item = DataTesauro.campos.find(x => x.id === id);
                 if (item) item.agrupacion = inp.value.trim();
+            });
+            inp.addEventListener("blur", () => {
+                if (inp.value.trim() === startValue) return;
+                this.recordHistory();
             });
         });
 
@@ -1784,6 +1988,7 @@ row.appendChild(tdDel);
 
                 const refEl = this.modal.querySelector(`[data-field="ref"][data-id="${id}"]`);
                 if (refEl) refEl.innerText = refFinal;
+                this.recordHistory();
             });
         });
 
@@ -1890,6 +2095,7 @@ row.appendChild(tdDel);
 
                 // Refrescar tabla
                 this.render();
+                this.recordHistory();
 
                 // Restaurar selección
                 TesauroManager.selectedRows.forEach(id => {
@@ -1941,6 +2147,7 @@ row.appendChild(tdDel);
 
                 // Re-dibujar tabla para que aparezca la nueva fila
                 TesauroManager.render();
+                TesauroManager.recordHistory();
             });
         });
 
@@ -1960,11 +2167,16 @@ row.appendChild(tdDel);
                 item.opciones = item.opciones.filter(o => o.id !== idOpcion);
 
                 TesauroManager.render();
+                TesauroManager.recordHistory();
             });
         });
 
         // Editar referencia de opción
         this.modal.querySelectorAll(".tm-opt-ref").forEach(inp => {
+            let startValue = "";
+            inp.addEventListener("focus", () => {
+                startValue = inp.value.trim();
+            });
             inp.addEventListener("input", () => {
                 const optRow = inp.closest(".tm-opt-row");
                 const box = inp.closest(".tm-opt-box");
@@ -1981,10 +2193,18 @@ row.appendChild(tdDel);
 
                 opt.ref = inp.value.trim();
             });
+            inp.addEventListener("blur", () => {
+                if (inp.value.trim() === startValue) return;
+                this.recordHistory();
+            });
         });
 
         // Editar valor visual de opción
         this.modal.querySelectorAll(".tm-opt-valor").forEach(inp => {
+            let startValue = "";
+            inp.addEventListener("focus", () => {
+                startValue = inp.value;
+            });
             inp.addEventListener("input", () => {
                 const optRow = inp.closest(".tm-opt-row");
                 const box = inp.closest(".tm-opt-box");
@@ -2000,6 +2220,19 @@ row.appendChild(tdDel);
                 if (!opt) return;
 
                 opt.valor = inp.value;
+            });
+            inp.addEventListener("blur", () => {
+                if (inp.value === startValue) return;
+                this.recordHistory();
+            });
+        });
+        // DUPLICAR TESAURO
+        this.modal.querySelectorAll(".tmDupTesauro").forEach(btn => {
+            btn.addEventListener("click", e => {
+                e.stopPropagation();
+                const id = btn.dataset.id;
+                if (!id) return;
+                this.duplicateTesauro(id);
             });
         });
         // BORRAR TESAURO COMPLETO
@@ -2017,6 +2250,7 @@ row.appendChild(tdDel);
                     // refrescar
                     this.render();
                     if (typeof DataTesauro.renderList === "function") DataTesauro.renderList();
+                    this.recordHistory();
                 });
             });
 
@@ -2043,7 +2277,15 @@ row.appendChild(tdDel);
             const id = el.dataset.id;
             const item = lista.find(x => x.id === id);
             if (item && (field === "ref" || field === "nombre")) {
-                item[field] = el.innerText.trim();
+                let value = el.innerText.trim();
+                if (field === "ref") {
+                    value = this.limitReferenceLength(value);
+                    if (this.hasReference(value, id)) {
+                        return;
+                    }
+                    el.innerText = value;
+                }
+                item[field] = value;
             }
         });
 
@@ -2081,11 +2323,12 @@ row.appendChild(tdDel);
     normalizeFromJson(json) {
         const arr = Array.isArray(json) ? json : [json];
         return arr.map(o => {
+            const ref = this.limitReferenceLength(o.ref || o.referencia || o.referenciaTesauro || "");
             return {
                 id: (window.DataTesauro && typeof DataTesauro.generateId === "function")
                     ? DataTesauro.generateId()
                     : TesauroManager.generateId(),
-                ref: o.ref || o.referencia || o.referenciaTesauro || "",
+                ref,
                 nombre: o.nombre || o.label || "",
                 tipo: o.tipo || "texto",
                 momento: o.momento || o.momentoCaptura || "",
@@ -2141,13 +2384,14 @@ row.appendChild(tdDel);
                 agrupacion = parts[4] || "";
             }
 
-            if (!ref || !nombre) continue;
+            const refFinal = this.limitReferenceLength(ref);
+            if (!refFinal || !nombre) continue;
 
             campos.push({
                 id: (window.DataTesauro && typeof DataTesauro.generateId === "function")
                     ? DataTesauro.generateId()
                     : TesauroManager.generateId(),
-                ref,
+                ref: refFinal,
                 nombre,
                 tipo,
                 momento,
@@ -2183,7 +2427,8 @@ row.appendChild(tdDel);
             const nombre     = (parts[3] || "").trim();
             const tipoTexto  = (parts[4] || "").trim(); // clasif y borrar se ignoran
 
-            if (!ref || !nombre) return;
+            const refFinal = this.limitReferenceLength(ref);
+            if (!refFinal || !nombre) return;
 
             const tipo = TesauroManager.mapTipoFromTexto(tipoTexto);
 
@@ -2191,7 +2436,7 @@ row.appendChild(tdDel);
                 id: (window.DataTesauro && typeof DataTesauro.generateId === "function")
                     ? DataTesauro.generateId()
                     : TesauroManager.generateId(),
-                ref,
+                ref: refFinal,
                 nombre,
                 tipo,
                 momento,
@@ -2511,6 +2756,47 @@ row.appendChild(tdDel);
     },
 
     /* ---------------------------------------------
+       Duplicar tesauro
+    --------------------------------------------- */
+    duplicateTesauro(id) {
+        if (!window.DataTesauro) return;
+        const lista = DataTesauro.campos || [];
+        const original = lista.find(c => c.id === id);
+        if (!original) return;
+
+        const baseRef = this.limitReferenceLength(`${original.ref || "nuevoCampo"}2`);
+        const refFinal = this.getUniqueReference(baseRef);
+        const nombreFinal = `${original.nombre || ""} 2`.trim();
+
+        const nuevo = {
+            ...JSON.parse(JSON.stringify(original)),
+            id: (typeof DataTesauro.generateId === "function")
+                ? DataTesauro.generateId()
+                : TesauroManager.generateId(),
+            ref: refFinal,
+            nombre: nombreFinal,
+            opciones: Array.isArray(original.opciones)
+                ? original.opciones.map(o => ({
+                    ...o,
+                    id: TesauroManager.generateId()
+                }))
+                : []
+        };
+
+        lista.push(nuevo);
+        DataTesauro.campos = lista;
+
+        if (typeof DataTesauro.renderList === "function") {
+            DataTesauro.renderList();
+        } else if (typeof DataTesauro.render === "function") {
+            DataTesauro.render();
+        }
+
+        this.render();
+        this.recordHistory();
+    },
+
+    /* ---------------------------------------------
        ID helper
     --------------------------------------------- */
     generateId() {
@@ -2528,13 +2814,14 @@ row.appendChild(tdDel);
 
         const lista = DataTesauro.campos || [];
         const nombreFinal = (nombre || "").trim();
+        const refFinalLimited = this.limitReferenceLength(refFinal || "");
         if (!nombreFinal) return;
 
         const nuevo = {
             id: (typeof DataTesauro.generateId === "function")
                 ? DataTesauro.generateId()
                 : TesauroManager.generateId(),
-            ref: refFinal,
+            ref: refFinalLimited,
             nombre: nombreFinal,
             tipo: "texto",
             opciones: [],
@@ -2553,6 +2840,7 @@ row.appendChild(tdDel);
         }
 
         this.render();
+        this.recordHistory();
     }
 };
 
