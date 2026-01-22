@@ -1,5 +1,9 @@
 # Log de cambios
 
+## v1.3.18 - 2026-02-20
+- El gestor de tesauros ahora permite crear tesauros sin sugerencia automática de referencia y ofrece un selector para generar la referencia al crear uno individual.
+- Se añadió el icono de rueda dentada junto a la referencia en el listado para sugerir la referencia en Camel Case bajo demanda.
+
 ## v1.3.17 - 2026-01-20
 - Se ajustó el resaltado para que los bloques de tesauros, secciones y utilidades rompan líneas igual que el textarea y eviten desajustes del overlay.
 
