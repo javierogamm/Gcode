@@ -31,6 +31,7 @@ const DataTesauro = {
     quickCreateModal: null,
     quickCreateNameInput: null,
     quickCreateRefInput: null,
+    quickCreateRefSelect: null,
     quickCreateTypeSelect: null,
     quickRefEdited: false,
 
@@ -390,9 +391,10 @@ const DataTesauro = {
         this.quickRefEdited = false;
         if (this.quickCreateNameInput) this.quickCreateNameInput.value = "";
         if (this.quickCreateRefInput) this.quickCreateRefInput.value = "";
+        if (this.quickCreateRefSelect) this.quickCreateRefSelect.value = "no";
         if (this.quickCreateTypeSelect) this.quickCreateTypeSelect.value = "texto";
 
-        this.updateQuickRefSuggestion();
+        this.updateQuickRefPreview();
 
         this.quickCreateModal.style.display = "flex";
         if (this.quickCreateNameInput) this.quickCreateNameInput.focus();
@@ -432,10 +434,18 @@ const DataTesauro = {
                 </label>
 
                 <label style="display:flex; flex-direction:column; gap:4px;">
-                    <span style="font-size:12px; color:#6b7280;">Referencia (se sugiere automáticamente)</span>
-                    <input id="tesauroQuickRef" type="text" placeholder="Referencia sugerida" style="
+                    <span style="font-size:12px; color:#6b7280;">Referencia</span>
+                    <input id="tesauroQuickRef" type="text" placeholder="Referencia" style="
                         width:100%; padding:7px 8px; border-radius:8px; border:1px solid #cbd5e1; font-size:13px;">
-                    <small style="font-size:11px; color:#9ca3af;">Se genera con las normas de DataTesauro mientras escribes el nombre.</small>
+                </label>
+
+                <label style="display:flex; flex-direction:column; gap:4px;">
+                    <span style="font-size:12px; color:#6b7280;">Crear referencia</span>
+                    <select id="tesauroQuickRefSelect" style="
+                        width:100%; padding:7px 8px; border-radius:8px; border:1px solid #cbd5e1; font-size:13px;">
+                        <option value="no">No</option>
+                        <option value="si">Sí</option>
+                    </select>
                 </label>
 
                 <label style="display:flex; flex-direction:column; gap:4px;">
@@ -468,6 +478,7 @@ const DataTesauro = {
         this.quickCreateModal = overlay;
         this.quickCreateNameInput = overlay.querySelector("#tesauroQuickName");
         this.quickCreateRefInput = overlay.querySelector("#tesauroQuickRef");
+        this.quickCreateRefSelect = overlay.querySelector("#tesauroQuickRefSelect");
         this.quickCreateTypeSelect = overlay.querySelector("#tesauroQuickType");
 
         const btnCancel = overlay.querySelector("#tesauroQuickCancel");
@@ -475,14 +486,20 @@ const DataTesauro = {
 
         if (this.quickCreateNameInput) {
             this.quickCreateNameInput.addEventListener("input", () => {
-                this.quickRefEdited = false;
-                this.updateQuickRefSuggestion();
+                this.updateQuickRefPreview();
             });
         }
 
         if (this.quickCreateRefInput) {
             this.quickCreateRefInput.addEventListener("input", () => {
                 this.quickRefEdited = true;
+            });
+        }
+
+        if (this.quickCreateRefSelect) {
+            this.quickCreateRefSelect.addEventListener("change", () => {
+                this.quickRefEdited = false;
+                this.updateQuickRefPreview();
             });
         }
 
@@ -500,12 +517,16 @@ const DataTesauro = {
         });
     },
 
-    updateQuickRefSuggestion() {
+    updateQuickRefPreview() {
         if (!this.quickCreateNameInput || !this.quickCreateRefInput) return;
+        const crearRef = (this.quickCreateRefSelect?.value || "no") === "si";
+        if (!crearRef) return;
+
         if (this.quickRefEdited && this.quickCreateRefInput.value.trim()) return;
 
         const suggestion = this.generarReferenciaDesdeNombre(this.quickCreateNameInput.value);
-        this.quickCreateRefInput.value = suggestion;
+        this.quickCreateRefInput.value = this.limitReferenceLength(suggestion);
+        this.quickRefEdited = false;
     },
 
     closeQuickCreateModal() {
@@ -520,13 +541,14 @@ const DataTesauro = {
         const nombre = (this.quickCreateNameInput.value || "").trim();
         let ref = (this.quickCreateRefInput.value || "").trim();
         const tipo = this.quickCreateTypeSelect.value || "texto";
+        const crearRef = (this.quickCreateRefSelect?.value || "no") === "si";
 
         if (!nombre) {
             alert("Debes indicar un nombre para el tesauro.");
             return;
         }
 
-        if (!ref) {
+        if (!ref && crearRef) {
             ref = this.generarReferenciaDesdeNombre(nombre);
             this.quickCreateRefInput.value = ref;
         }
@@ -535,7 +557,7 @@ const DataTesauro = {
         this.quickCreateRefInput.value = ref;
 
         if (!ref) {
-            alert("No se pudo generar una referencia válida.");
+            alert("Indica una referencia o activa la creación automática.");
             return;
         }
 
