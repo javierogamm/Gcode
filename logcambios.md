@@ -1,5 +1,11 @@
 # Log de cambios
 
+## v1.3.21 - 2026-02-21
+- Se añadió un botón para duplicar tesauros en el gestor, generando nombre y referencia con sufijo "2".
+- Las referencias de tesauros ahora se limitan a 40 caracteres en edición e importaciones.
+- Se incorporaron botones de deshacer y rehacer cambios dentro del gestor de tesauros.
+- Los tres botones de importación del gestor de tesauros ahora comparten el mismo color.
+
 ## v1.3.20 - 2026-02-20
 - Los modales de creación de tesauros muestran la referencia generada cuando se elige "Sí" para crearla, permitiendo revisarla antes de insertar.
 
