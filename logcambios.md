@@ -1,5 +1,8 @@
 # Log de cambios
 
+## v1.3.20 - 2026-02-20
+- Los modales de creación de tesauros muestran la referencia generada cuando se elige "Sí" para crearla, permitiendo revisarla antes de insertar.
+
 ## v1.3.19 - 2026-02-20
 - El modal rápido de creación de tesauros pregunta si debe crear la referencia y deja de sugerirla automáticamente mientras se escribe.
 

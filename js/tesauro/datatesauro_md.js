@@ -33,6 +33,7 @@ const DataTesauro = {
     quickCreateRefInput: null,
     quickCreateRefSelect: null,
     quickCreateTypeSelect: null,
+    quickRefEdited: false,
 
     /* =======================================
        INICIALIZAR PARA ESTE EDITOR
@@ -387,10 +388,13 @@ const DataTesauro = {
 
         if (!this.quickCreateModal) return;
 
+        this.quickRefEdited = false;
         if (this.quickCreateNameInput) this.quickCreateNameInput.value = "";
         if (this.quickCreateRefInput) this.quickCreateRefInput.value = "";
         if (this.quickCreateRefSelect) this.quickCreateRefSelect.value = "no";
         if (this.quickCreateTypeSelect) this.quickCreateTypeSelect.value = "texto";
+
+        this.updateQuickRefPreview();
 
         this.quickCreateModal.style.display = "flex";
         if (this.quickCreateNameInput) this.quickCreateNameInput.focus();
@@ -480,6 +484,25 @@ const DataTesauro = {
         const btnCancel = overlay.querySelector("#tesauroQuickCancel");
         const btnCreate = overlay.querySelector("#tesauroQuickCreateBtn");
 
+        if (this.quickCreateNameInput) {
+            this.quickCreateNameInput.addEventListener("input", () => {
+                this.updateQuickRefPreview();
+            });
+        }
+
+        if (this.quickCreateRefInput) {
+            this.quickCreateRefInput.addEventListener("input", () => {
+                this.quickRefEdited = true;
+            });
+        }
+
+        if (this.quickCreateRefSelect) {
+            this.quickCreateRefSelect.addEventListener("change", () => {
+                this.quickRefEdited = false;
+                this.updateQuickRefPreview();
+            });
+        }
+
         if (btnCancel) {
             btnCancel.addEventListener("click", () => this.closeQuickCreateModal());
         }
@@ -492,6 +515,18 @@ const DataTesauro = {
             if (!this.quickCreateModal || this.quickCreateModal.style.display !== "flex") return;
             if (e.key === "Escape") this.closeQuickCreateModal();
         });
+    },
+
+    updateQuickRefPreview() {
+        if (!this.quickCreateNameInput || !this.quickCreateRefInput) return;
+        const crearRef = (this.quickCreateRefSelect?.value || "no") === "si";
+        if (!crearRef) return;
+
+        if (this.quickRefEdited && this.quickCreateRefInput.value.trim()) return;
+
+        const suggestion = this.generarReferenciaDesdeNombre(this.quickCreateNameInput.value);
+        this.quickCreateRefInput.value = this.limitReferenceLength(suggestion);
+        this.quickRefEdited = false;
     },
 
     closeQuickCreateModal() {

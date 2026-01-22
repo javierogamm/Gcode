@@ -32,6 +32,10 @@ const TesauroManager = {
     exportEntidad: "",
     exportActividad: "",
 
+    // Modal crear tesauro individual
+    createModal: null,
+    createRefEdited: false,
+
     // Import / export
     pasteArea: null,
 
@@ -360,6 +364,12 @@ const TesauroManager = {
                     font-size:13px;
                 " placeholder="Ej: Tipo de licencia">
 
+                <label style="font-size:13px; color:#111827;">Referencia</label>
+                <input id="tmCreateRefInput" type="text" style="
+                    width:100%; padding:6px; border-radius:6px; border:1px solid #cbd5e1;
+                    font-size:13px;
+                " placeholder="Referencia">
+
                 <label style="font-size:13px; color:#111827;">Crear referencia</label>
                 <select id="tmCreateRef" style="
                     width:100%; padding:6px; border-radius:6px; border:1px solid #cbd5e1;
@@ -466,24 +476,61 @@ const TesauroManager = {
         if (this.createModal) {
             const btnCreateCancel = this.createModal.querySelector("#tmCreateCancel");
             const btnCreateConfirm = this.createModal.querySelector("#tmCreateConfirm");
+            const createNameInput = this.createModal.querySelector("#tmCreateNombre");
+            const createRefInput = this.createModal.querySelector("#tmCreateRefInput");
+            const createRefSelect = this.createModal.querySelector("#tmCreateRef");
 
             if (btnCreateCancel) {
                 btnCreateCancel.addEventListener("click", () => this.closeCreateTesauroModal());
             }
 
+            if (createNameInput) {
+                createNameInput.addEventListener("input", () => {
+                    this.updateCreateRefPreview();
+                });
+            }
+
+            if (createRefInput) {
+                createRefInput.addEventListener("input", () => {
+                    this.createRefEdited = true;
+                });
+            }
+
+            if (createRefSelect) {
+                createRefSelect.addEventListener("change", () => {
+                    this.createRefEdited = false;
+                    this.updateCreateRefPreview();
+                });
+            }
+
             if (btnCreateConfirm) {
                 btnCreateConfirm.addEventListener("click", () => {
                     const inNombre = this.createModal.querySelector("#tmCreateNombre");
+                    const inRefInput = this.createModal.querySelector("#tmCreateRefInput");
                     const inRef = this.createModal.querySelector("#tmCreateRef");
                     const nombre = (inNombre?.value || "").trim();
                     const crearRef = (inRef?.value || "no") === "si";
+                    let ref = (inRefInput?.value || "").trim();
 
                     if (!nombre) {
                         alert("Indica un nombre para el tesauro.");
                         return;
                     }
 
-                    this.createTesauroFromManager(nombre, crearRef);
+                    if (crearRef && !ref) {
+                        ref = this.getSuggestedReferenceFromName(nombre);
+                        ref = this.getUniqueReference(ref);
+                        if (inRefInput) inRefInput.value = ref;
+                    }
+
+                    ref = this.limitReferenceLength(ref);
+
+                    if (ref && this.hasReference(ref)) {
+                        alert("Ya existe un tesauro con esa referencia.");
+                        return;
+                    }
+
+                    this.createTesauroFromManager(nombre, ref);
                     this.closeCreateTesauroModal();
                 });
             }
@@ -2215,6 +2262,38 @@ row.appendChild(tdDel);
         return refFinal;
     },
 
+    hasReference(ref, currentId) {
+        if (!ref) return false;
+        const lista = (window.DataTesauro && Array.isArray(DataTesauro.campos))
+            ? DataTesauro.campos
+            : [];
+        const refLower = ref.toLowerCase();
+        return lista.some(c => c.id !== currentId && (c.ref || "").toLowerCase() === refLower);
+    },
+
+    updateCreateRefPreview() {
+        if (!this.createModal) return;
+        const inNombre = this.createModal.querySelector("#tmCreateNombre");
+        const inRefInput = this.createModal.querySelector("#tmCreateRefInput");
+        const inRef = this.createModal.querySelector("#tmCreateRef");
+        if (!inNombre || !inRefInput || !inRef) return;
+
+        const crearRef = (inRef.value || "no") === "si";
+        if (!crearRef) return;
+
+        if (this.createRefEdited && inRefInput.value.trim()) return;
+
+        const suggestion = this.getSuggestedReferenceFromName(inNombre.value);
+        if (!suggestion) {
+            inRefInput.value = "";
+            return;
+        }
+
+        const refFinal = this.getUniqueReference(suggestion);
+        inRefInput.value = refFinal;
+        this.createRefEdited = false;
+    },
+
     mergeImportedCampos(nuevos) {
         if (!window.DataTesauro) return;
         const actuales = DataTesauro.campos || [];
@@ -2284,9 +2363,13 @@ row.appendChild(tdDel);
     openCreateTesauroModal() {
         if (!this.createModal) return;
         const inNombre = this.createModal.querySelector("#tmCreateNombre");
+        const inRefInput = this.createModal.querySelector("#tmCreateRefInput");
         const inRef = this.createModal.querySelector("#tmCreateRef");
+        this.createRefEdited = false;
         if (inNombre) inNombre.value = "";
+        if (inRefInput) inRefInput.value = "";
         if (inRef) inRef.value = "no";
+        this.updateCreateRefPreview();
         this.createModal.style.display = "flex";
         if (inNombre) inNombre.focus();
     },
@@ -2437,7 +2520,7 @@ row.appendChild(tdDel);
     /* ---------------------------------------------
        Crear un tesauro nuevo desde el manager
     --------------------------------------------- */
-    createTesauroFromManager(nombre, crearReferencia) {
+    createTesauroFromManager(nombre, refFinal) {
         if (!window.DataTesauro) {
             alert("DataTesauro no está disponible.");
             return;
@@ -2446,14 +2529,6 @@ row.appendChild(tdDel);
         const lista = DataTesauro.campos || [];
         const nombreFinal = (nombre || "").trim();
         if (!nombreFinal) return;
-
-        let refFinal = "";
-        if (crearReferencia) {
-            const refBase = this.getSuggestedReferenceFromName(nombreFinal);
-            if (refBase) {
-                refFinal = this.getUniqueReference(refBase);
-            }
-        }
 
         const nuevo = {
             id: (typeof DataTesauro.generateId === "function")
