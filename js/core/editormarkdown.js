@@ -436,11 +436,13 @@ function ensureColumnsModal() {
     if (leftLanguage) {
         leftLanguage.addEventListener("change", () => {
             columnsModalState.languageLeft = leftLanguage.value;
+            applyLanguageToColumnText(leftInput, leftLanguage);
         });
     }
     if (rightLanguage) {
         rightLanguage.addEventListener("change", () => {
             columnsModalState.languageRight = rightLanguage.value;
+            applyLanguageToColumnText(rightInput, rightLanguage);
         });
     }
     if (leftInput) {
@@ -569,11 +571,14 @@ function normalizeColumnContent(value, fallback) {
     return trimmed ? trimmed : fallback;
 }
 
-function addLanguageTagToThesaurusText(text, languageCode) {
+function updateLanguageForThesaurusText(text, languageCode, onlyMissing) {
     if (!languageCode) return text;
     return text.replace(/\{\{\s*personalized\s*\|[\s\S]*?\}\}/g, (match) => {
         if (!/reference\s*:/i.test(match)) return match;
-        if (/language\s*:/i.test(match)) return match;
+        if (onlyMissing && /language\s*:/i.test(match)) return match;
+        if (/language\s*:/i.test(match)) {
+            return match.replace(/language\s*:\s*[\w-]+/i, `language: ${languageCode}`);
+        }
         return match.replace(/\s*\}\}\s*$/, ` | language: ${languageCode}}}`);
     });
 }
@@ -584,12 +589,22 @@ function handleColumnsPaste(event, textarea, languageSelect) {
     if (!languageCode) return;
     const plain = event.clipboardData.getData("text/plain");
     if (!plain) return;
-    const enriched = addLanguageTagToThesaurusText(plain, languageCode);
+    const enriched = updateLanguageForThesaurusText(plain, languageCode, true);
     if (enriched === plain) return;
     event.preventDefault();
     const start = textarea.selectionStart || 0;
     const end = textarea.selectionEnd || start;
     textarea.setRangeText(enriched, start, end, "end");
+}
+
+function applyLanguageToColumnText(textarea, languageSelect) {
+    if (!textarea || !languageSelect) return;
+    const languageCode = languageSelect.value;
+    if (!languageCode) return;
+    const updated = updateLanguageForThesaurusText(textarea.value, languageCode, false);
+    if (updated !== textarea.value) {
+        textarea.value = updated;
+    }
 }
 
 function insertColumnsFromModal(modal) {

@@ -1,5 +1,8 @@
 # Log de cambios
 
+## v1.3.23 - 2026-02-22
+- Al cambiar el idioma de una columna en el modal de doble columna, se actualiza el código de idioma de los tesauros existentes en esa columna.
+
 ## v1.3.22 - 2026-02-22
 - Se duplicó el tamaño del modal de doble columna para mejorar la claridad de edición.
 - El modal de doble columna ahora permite definir un idioma por columna y añade la etiqueta `language` al pegar tesauros.
