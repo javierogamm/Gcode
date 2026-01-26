@@ -350,8 +350,28 @@ function createMarkdownTable() {
 const columnsModalState = {
     modal: null,
     selectionStart: 0,
-    selectionEnd: 0
+    selectionEnd: 0,
+    languageLeft: "es_ES",
+    languageRight: "es_ES"
 };
+
+const columnsLanguageOptions = [
+    { label: "Castellano", value: "es_ES" },
+    { label: "Catalán", value: "ca_ES" },
+    { label: "Balear", value: "ba_ES" },
+    { label: "Valenciano", value: "va_ES" },
+    { label: "Gallego", value: "gl_ES" },
+    { label: "Euskera", value: "eu_ES" }
+];
+
+function buildLanguageOptions(selectedValue) {
+    return columnsLanguageOptions
+        .map(option => {
+            const selected = option.value === selectedValue ? "selected" : "";
+            return `<option value="${option.value}" ${selected}>${option.label}</option>`;
+        })
+        .join("");
+}
 
 function ensureColumnsModal() {
     if (columnsModalState.modal) return columnsModalState.modal;
@@ -372,10 +392,16 @@ function ensureColumnsModal() {
                 <div class="columns-grid">
                     <label class="form-row">
                         <span>Columna izquierda</span>
+                        <select id="columnsLeftLanguage" class="columns-language-select">
+                            ${buildLanguageOptions(columnsModalState.languageLeft)}
+                        </select>
                         <textarea id="columnsLeftInput" class="columns-textarea" placeholder="Contenido de la columna izquierda"></textarea>
                     </label>
                     <label class="form-row">
                         <span>Columna derecha</span>
+                        <select id="columnsRightLanguage" class="columns-language-select">
+                            ${buildLanguageOptions(columnsModalState.languageRight)}
+                        </select>
                         <textarea id="columnsRightInput" class="columns-textarea" placeholder="Contenido de la columna derecha"></textarea>
                     </label>
                 </div>
@@ -398,11 +424,35 @@ function ensureColumnsModal() {
     const cancelBtn = modal.querySelector("[data-action='cancelar']");
     const switchBtn = modal.querySelector("[data-action='switch']");
     const insertBtn = modal.querySelector("[data-action='insertar']");
+    const leftLanguage = modal.querySelector("#columnsLeftLanguage");
+    const rightLanguage = modal.querySelector("#columnsRightLanguage");
+    const leftInput = modal.querySelector("#columnsLeftInput");
+    const rightInput = modal.querySelector("#columnsRightInput");
 
     if (closeBtn) closeBtn.addEventListener("click", closeModal);
     if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
     if (switchBtn) switchBtn.addEventListener("click", () => swapColumnsInputs(modal));
     if (insertBtn) insertBtn.addEventListener("click", () => insertColumnsFromModal(modal));
+    if (leftLanguage) {
+        leftLanguage.addEventListener("change", () => {
+            columnsModalState.languageLeft = leftLanguage.value;
+        });
+    }
+    if (rightLanguage) {
+        rightLanguage.addEventListener("change", () => {
+            columnsModalState.languageRight = rightLanguage.value;
+        });
+    }
+    if (leftInput) {
+        leftInput.addEventListener("paste", (event) => {
+            handleColumnsPaste(event, leftInput, leftLanguage);
+        });
+    }
+    if (rightInput) {
+        rightInput.addEventListener("paste", (event) => {
+            handleColumnsPaste(event, rightInput, rightLanguage);
+        });
+    }
 
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && modal.style.display === "flex") {
@@ -417,11 +467,20 @@ function ensureColumnsModal() {
 function swapColumnsInputs(modal) {
     const leftInput = modal.querySelector("#columnsLeftInput");
     const rightInput = modal.querySelector("#columnsRightInput");
+    const leftLanguage = modal.querySelector("#columnsLeftLanguage");
+    const rightLanguage = modal.querySelector("#columnsRightLanguage");
     if (!leftInput || !rightInput) return;
 
     const leftValue = leftInput.value;
     leftInput.value = rightInput.value;
     rightInput.value = leftValue;
+    if (leftLanguage && rightLanguage) {
+        const leftLang = leftLanguage.value;
+        leftLanguage.value = rightLanguage.value;
+        rightLanguage.value = leftLang;
+        columnsModalState.languageLeft = leftLanguage.value;
+        columnsModalState.languageRight = rightLanguage.value;
+    }
     leftInput.focus();
 }
 
@@ -429,6 +488,8 @@ function openColumnsModal() {
     const modal = ensureColumnsModal();
     const leftInput = modal.querySelector("#columnsLeftInput");
     const rightInput = modal.querySelector("#columnsRightInput");
+    const leftLanguage = modal.querySelector("#columnsLeftLanguage");
+    const rightLanguage = modal.querySelector("#columnsRightLanguage");
 
     const ta = markdownText;
     columnsModalState.selectionStart = ta.selectionStart || 0;
@@ -461,6 +522,12 @@ function openColumnsModal() {
     }
     if (rightInput) {
         rightInput.value = matchedColumns ? matchedColumns.right : defaultRight;
+    }
+    if (leftLanguage) {
+        leftLanguage.value = columnsModalState.languageLeft || "es_ES";
+    }
+    if (rightLanguage) {
+        rightLanguage.value = columnsModalState.languageRight || "es_ES";
     }
 
     modal.style.display = "flex";
@@ -500,6 +567,29 @@ function normalizeColumnsCapturedValue(value) {
 function normalizeColumnContent(value, fallback) {
     const trimmed = value.trim();
     return trimmed ? trimmed : fallback;
+}
+
+function addLanguageTagToThesaurusText(text, languageCode) {
+    if (!languageCode) return text;
+    return text.replace(/\{\{\s*personalized\s*\|[\s\S]*?\}\}/g, (match) => {
+        if (!/reference\s*:/i.test(match)) return match;
+        if (/language\s*:/i.test(match)) return match;
+        return match.replace(/\s*\}\}\s*$/, ` | language: ${languageCode}}}`);
+    });
+}
+
+function handleColumnsPaste(event, textarea, languageSelect) {
+    if (!event.clipboardData || !textarea) return;
+    const languageCode = languageSelect ? languageSelect.value : "";
+    if (!languageCode) return;
+    const plain = event.clipboardData.getData("text/plain");
+    if (!plain) return;
+    const enriched = addLanguageTagToThesaurusText(plain, languageCode);
+    if (enriched === plain) return;
+    event.preventDefault();
+    const start = textarea.selectionStart || 0;
+    const end = textarea.selectionEnd || start;
+    textarea.setRangeText(enriched, start, end, "end");
 }
 
 function insertColumnsFromModal(modal) {

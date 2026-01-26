@@ -1,5 +1,9 @@
 # Log de cambios
 
+## v1.3.22 - 2026-02-22
+- Se duplicó el tamaño del modal de doble columna para mejorar la claridad de edición.
+- El modal de doble columna ahora permite definir un idioma por columna y añade la etiqueta `language` al pegar tesauros.
+
 ## v1.3.21 - 2026-02-21
 - Se añadió un botón para duplicar tesauros en el gestor, generando nombre y referencia con sufijo "2".
 - Las referencias de tesauros ahora se limitan a 40 caracteres en edición e importaciones.
