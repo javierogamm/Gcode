@@ -1,5 +1,10 @@
 # Log de cambios
 
+## v1.3.24 - 2026-02-22
+- Se aseguró el resaltado de columnas y splits incluso cuando dentro hay secciones, tesauros o LET.
+- Se añadió un nuevo overlay para datos de tipo función con color verde oscuro.
+- Los datos de función ahora reciben el atributo `language` al trabajar en columnas, igual que los tesauros.
+
 ## v1.3.23 - 2026-02-22
 - Al cambiar el idioma de una columna en el modal de doble columna, se actualiza el código de idioma de los tesauros existentes en esa columna.
 

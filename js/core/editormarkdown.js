@@ -573,7 +573,7 @@ function normalizeColumnContent(value, fallback) {
 
 function updateLanguageForThesaurusText(text, languageCode, onlyMissing) {
     if (!languageCode) return text;
-    return text.replace(/\{\{\s*personalized\s*\|[\s\S]*?\}\}/g, (match) => {
+    return text.replace(/\{\{\s*(personalized|function)\b[\s\S]*?\}\}/gi, (match) => {
         if (!/reference\s*:/i.test(match)) return match;
         if (onlyMissing && /language\s*:/i.test(match)) return match;
         if (/language\s*:/i.test(match)) {
@@ -1610,19 +1610,11 @@ function updateHighlight() {
                     return '<span class="tesauro-block">' + safeMatch + '</span>';
                 }
             );
-        }
-
-        if (typeof highlightColumns === "undefined" || highlightColumns) {
             safe = safe.replace(
-                /\[columns:block\]([\s\S]*?)\[columns:split\]([\s\S]*?)\[columns\]/g,
-                function (matchColumns, leftContent, rightContent) {
-                    return (
-                        '<span class="columns-left-block">[columns:block]' +
-                        leftContent +
-                        '</span><span class="columns-right-block">[columns:split]' +
-                        rightContent +
-                        '[columns]</span>'
-                    );
+                /\{\{\s*function\s*\|\s*reference\s*:[^}]+\}\}/gi,
+                function (matchFunction) {
+                    const safeMatch = matchFunction.replace(/&/g, "&amp;");
+                    return '<span class="function-block">' + safeMatch + '</span>';
                 }
             );
         }
@@ -1678,6 +1670,21 @@ function updateHighlight() {
             // Sin sección → texto normal
             html += safe;
         }
+    }
+
+    if (typeof highlightColumns === "undefined" || highlightColumns) {
+        html = html.replace(
+            /\[columns:block\]([\s\S]*?)\[columns:split\]([\s\S]*?)\[columns\]/g,
+            function (matchColumns, leftContent, rightContent) {
+                return (
+                    '<span class="columns-left-block">[columns:block]' +
+                    leftContent +
+                    '</span><span class="columns-right-block">[columns:split]' +
+                    rightContent +
+                    '[columns]</span>'
+                );
+            }
+        );
     }
 
     hl.innerHTML = html;
