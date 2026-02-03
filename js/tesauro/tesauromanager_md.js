@@ -23,9 +23,11 @@ const TesauroManager = {
     btnOpenCsvImport: null,
     refModal: null,
 
-    importModal: null,          // popup importar texto
+    importModal: null,          // popup importar copypaste
     markdownImportModal: null,  // *** NUEVO: popup importar markdown
     csvImportModal: null,
+    selectorConfigModal: null,
+    pasteImportState: null,
 
     // modal exportar Tesauro (3 CSV)
     exportModal: null,
@@ -186,7 +188,7 @@ const TesauroManager = {
                 cursor:pointer;
                 font-weight:bold;
             ">
-                📥 Importar tesauros (texto)
+                📥 Importar tesauros (copypaste)
             </button>
 
             <button id="tmOpenCsvImport" style="
@@ -675,13 +677,17 @@ const TesauroManager = {
     },
 
     /* ============================================================
-       POPUP IMPORTAR TESAUROS DESDE TEXTO PLANO
-       (ya existente)
+       POPUP IMPORTAR TESAUROS DESDE COPYPASTE
     ============================================================ */
     openPlainImportPopup() {
-        // si ya existe, solo mostrar
+        this.openPasteImportModal();
+    },
+
+    openPasteImportModal() {
         if (this.importModal) {
             this.importModal.style.display = "flex";
+            const textarea = this.importModal.querySelector("#tmPasteInput");
+            if (textarea) textarea.value = "";
             return;
         }
 
@@ -706,19 +712,16 @@ const TesauroManager = {
                 flex-direction:column;
                 max-height:80vh;
             ">
-                <h2 style="margin:0 0 10px 0; text-align:center;">📥 Importar tesauros desde texto</h2>
+                <h2 style="margin:0 0 10px 0; text-align:center;">📋 Importar tesauros (copypaste)</h2>
                 <p style="margin:0 0 8px 0; font-size:13px; color:#4b5563;">
-                    Formato por línea (pegado desde Excel, columnas separadas por TAB):
-                    <br>
-                    <code>Momento captura   Agrupación   Referencia   Nombre tesauro   Tipo   Clasificación   Borrar</code>
-                    <br>
-                    Las columnas de <em>Clasificación</em> y <em>Borrar</em> se ignoran.
-                    Si el tipo no se reconoce, se usará <strong>Texto</strong>.
+                    Pega aquí la tabla copiada (Excel / app). Se aceptan dos formatos:
+                    (1) B=Referencia, C=Nombre, D=Tipo; (2) A=Momento, B=Agrupación,
+                    C=Referencia, D=Nombre, E=Tipo.
                 </p>
-                <textarea id="tmPlainInput" style="
+                <textarea id="tmPasteInput" style="
                     width:100%;
                     flex:1;
-                    min-height:140px;
+                    min-height:160px;
                     resize:vertical;
                     padding:8px;
                     margin:8px 0 12px 0;
@@ -727,19 +730,19 @@ const TesauroManager = {
                     font-family:Consolas,monospace;
                     font-size:12px;
                 " placeholder="Ejemplo:
-Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASIFICACIÓN\tBorrar"></textarea>
+Solicitud\tGeneral\tRefCampo\tCampo visible\tSelector I18N"></textarea>
 
                 <div style="display:flex; gap:10px; margin-top:8px;">
-                    <button id="tmPlainCancel" style="
+                    <button id="tmPasteCancel" style="
                         flex:1; background:#f1f5f9; border:1px solid #cbd5e1;
                         padding:8px; border-radius:6px; cursor:pointer;
                     ">Cancelar</button>
 
-                    <button id="tmPlainImport" style="
+                    <button id="tmPasteLoad" style="
                         flex:1; background:#10b981; color:white;
                         border:none; padding:8px;
                         border-radius:6px; cursor:pointer; font-weight:bold;
-                    ">Importar tesauros</button>
+                    ">Cargar</button>
                 </div>
             </div>
         `;
@@ -747,8 +750,8 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
         document.body.appendChild(div);
         this.importModal = div;
 
-        const btnCancel = div.querySelector("#tmPlainCancel");
-        const btnImport = div.querySelector("#tmPlainImport");
+        const btnCancel = div.querySelector("#tmPasteCancel");
+        const btnLoad = div.querySelector("#tmPasteLoad");
 
         if (btnCancel) {
             btnCancel.addEventListener("click", () => {
@@ -756,27 +759,439 @@ Solicitud\t00\tNuevoCampo98\tCampo para borrar DESDE ACTIVIDAD\tTexto\tSIN CLASI
             });
         }
 
-        if (btnImport) {
-            btnImport.addEventListener("click", () => {
-                const txt = (div.querySelector("#tmPlainInput").value || "").trim();
-                if (!txt) {
-                    alert("Pega algún texto con tesauros.");
-                    return;
-                }
-                const nuevos = this.normalizeFromPlainLines(txt);
-                if (!nuevos.length) {
-                    alert("No se ha podido leer ningún tesauro. Revisa el formato (tabulado).");
-                    return;
-                }
-
-                this.mergeImportedCampos(nuevos);
-                this.render();
-                this.recordHistory();
-
-                alert("✔ Importados " + nuevos.length + " tesauros desde texto.");
-                this.importModal.style.display = "none";
+        if (btnLoad) {
+            btnLoad.addEventListener("click", () => {
+                const txt = (div.querySelector("#tmPasteInput").value || "").trim();
+                this.startPasteImportFlow(txt);
             });
         }
+    },
+
+    startPasteImportFlow(rawText) {
+        const parsed = this.parsePasteTesauros(rawText);
+        if (!parsed.length) {
+            alert("❌ No se detectaron filas válidas. Revisa el copypaste.");
+            return;
+        }
+
+        if (this.importModal) {
+            this.importModal.style.display = "none";
+        }
+
+        const selectors = parsed.filter(item => item.needsI18nConfig);
+        this.pasteImportState = {
+            campos: parsed,
+            selectorsQueue: selectors,
+            opcionesPorRef: {}
+        };
+
+        if (!selectors.length) {
+            this.applyPasteImport();
+            return;
+        }
+
+        this.openSelectorConfigModal();
+    },
+
+    parsePasteTesauros(rawText) {
+        const lines = (rawText || "")
+            .split(/\r?\n/)
+            .map(l => l.trim())
+            .filter(l => l.length > 0);
+
+        const resultados = [];
+
+        lines.forEach(line => {
+            if (this.isPasteNoiseLine(line)) return;
+
+            const cols = this.normalizePasteColumns(this.splitPasteColumns(line));
+            if (cols.length < 3) return;
+
+            const parsed = this.parsePasteColumns(cols);
+            if (!parsed) return;
+
+            const refRaw = (parsed.ref || "").trim();
+            const ref = this.limitReferenceLength(refRaw);
+            const nombre = (parsed.nombre || "").trim();
+            if (!ref || !nombre) return;
+
+            const normalized = this.mapPasteTipo(parsed.tipoRaw);
+
+            resultados.push({
+                id: this.generateId(),
+                ref,
+                nombre,
+                tipo: normalized.tipo,
+                opciones: [],
+                needsI18nConfig: normalized.needsI18nConfig,
+                momento: parsed.momento,
+                agrupacion: parsed.agrupacion
+            });
+        });
+
+        return resultados;
+    },
+
+    splitPasteColumns(line) {
+        let cols = line.split("\t");
+        if (cols.length === 1) {
+            cols = line.split(/\s{2,}/g);
+        }
+        return cols.map(c => c.trim());
+    },
+
+    normalizePasteColumns(cols) {
+        const normalized = [...cols];
+        const last = normalized[normalized.length - 1];
+        if (last && last.toLowerCase() === "borrar") {
+            normalized.pop();
+        }
+        return normalized;
+    },
+
+    parsePasteColumns(cols) {
+        const hasExtendedFormat = cols.length >= 5 && (cols[2] || cols[3] || cols[4]);
+        if (hasExtendedFormat) {
+            return {
+                momento: (cols[0] || "").trim(),
+                agrupacion: (cols[1] || "").trim(),
+                ref: (cols[2] || "").trim(),
+                nombre: (cols[3] || "").trim(),
+                tipoRaw: (cols[4] || "").trim()
+            };
+        }
+
+        return {
+            momento: "",
+            agrupacion: "",
+            ref: (cols[1] || "").trim(),
+            nombre: (cols[2] || "").trim(),
+            tipoRaw: (cols[3] || "").trim()
+        };
+    },
+
+    isPasteNoiseLine(line) {
+        const normalized = line.toLowerCase();
+        return (
+            normalized === "borrar" ||
+            normalized.includes("añadir otra traducción") ||
+            normalized === "acciones" ||
+            normalized === "referencia\tvalor" ||
+            normalized.includes("referencia\tvalor\t")
+        );
+    },
+
+    mapPasteTipo(tipoRaw) {
+        const normalized = (tipoRaw || "")
+            .toString()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .trim();
+
+        if (normalized.includes("selector")) {
+            return {
+                tipo: "selector",
+                needsI18nConfig: normalized.includes("i18n")
+            };
+        }
+
+        if (normalized.includes("si/no") || normalized.includes("si-no") || normalized.includes("si / no")) {
+            return { tipo: "si_no", needsI18nConfig: false };
+        }
+
+        if (normalized.includes("fecha")) {
+            return { tipo: "fecha", needsI18nConfig: false };
+        }
+
+        if (normalized.includes("num")) {
+            return { tipo: "numero", needsI18nConfig: false };
+        }
+
+        if (normalized.includes("moneda")) {
+            return { tipo: "moneda", needsI18nConfig: false };
+        }
+
+        return { tipo: "texto", needsI18nConfig: false };
+    },
+
+    openSelectorConfigModal() {
+        if (!this.pasteImportState?.selectorsQueue?.length) {
+            this.applyPasteImport();
+            return;
+        }
+
+        const selector = this.pasteImportState.selectorsQueue.shift();
+
+        if (this.selectorConfigModal) {
+            this.selectorConfigModal.remove();
+        }
+
+        const modal = document.createElement("div");
+        modal.id = "tesauroSelectorModal";
+        modal.style.position = "fixed";
+        modal.style.inset = "0";
+        modal.style.background = "rgba(0,0,0,0.5)";
+        modal.style.display = "flex";
+        modal.style.alignItems = "center";
+        modal.style.justifyContent = "center";
+        modal.style.zIndex = "1000000";
+
+        modal.innerHTML = `
+            <div style="
+                background:white;
+                width:620px;
+                max-width:95%;
+                padding:20px;
+                border-radius:12px;
+                box-shadow:0 6px 20px rgba(0,0,0,0.35);
+                display:flex;
+                flex-direction:column;
+                gap:12px;
+            ">
+                <h2 style="margin:0; text-align:center;">
+                    🧩 Opciones para ${this.escapeAttr(selector.nombre)}
+                </h2>
+
+                <p style="margin:0; color:#475569; font-size:14px;">
+                    Pega la tabla de referencias para este selector. Se detectan referencias y valores,
+                    ignorando las etiquetas de idioma.
+                </p>
+
+                <textarea id="selectorPasteInput" style="
+                    width:100%;
+                    min-height:140px;
+                    resize:vertical;
+                    padding:10px;
+                    border:1px solid #cbd5e1;
+                    border-radius:8px;
+                    font-family:inherit;
+                "></textarea>
+
+                <button id="selectorParse" style="
+                    padding:10px; border-radius:8px; cursor:pointer; font-weight:bold;
+                ">Cargar referencias</button>
+
+                <div id="selectorValuesContainer" style="max-height:260px; overflow:auto;"></div>
+
+                <div style="display:flex; gap:10px;">
+                    <button id="selectorCancel" style="
+                        flex:1; padding:10px; border-radius:8px; cursor:pointer; font-weight:bold;
+                    ">Cancelar</button>
+                    <button id="selectorConfirm" style="
+                        flex:1; padding:10px; border-radius:8px; cursor:pointer; font-weight:bold;
+                    ">Guardar y continuar</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        this.selectorConfigModal = modal;
+
+        const container = modal.querySelector("#selectorValuesContainer");
+        const parseBtn = modal.querySelector("#selectorParse");
+
+        const renderRefs = (refs) => {
+            if (!refs.length) {
+                container.innerHTML = "<p style='color:#64748b;'>Sin referencias detectadas.</p>";
+                return;
+            }
+
+            container.innerHTML = `
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:#e2e8f0;">
+                            <th style="padding:6px; border:1px solid #cbd5e1;">Referencia</th>
+                            <th style="padding:6px; border:1px solid #cbd5e1;">Valor literal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${refs.map(({ ref, valor }) => `
+                            <tr>
+                                <td style="padding:6px; border:1px solid #cbd5e1;">${this.escapeAttr(ref)}</td>
+                                <td style="padding:6px; border:1px solid #cbd5e1;">
+                                    <input data-ref="${this.escapeAttr(ref)}" class="selector-valor-input"
+                                        value="${this.escapeAttr(valor || "")}"
+                                        style="width:100%; padding:6px; border:1px solid #cbd5e1; border-radius:6px;" />
+                                </td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            `;
+        };
+
+        parseBtn.addEventListener("click", () => {
+            const text = modal.querySelector("#selectorPasteInput")?.value || "";
+            const refs = this.parseSelectorRefs(text);
+            renderRefs(refs);
+        });
+
+        modal.querySelector("#selectorCancel").addEventListener("click", () => {
+            modal.remove();
+            this.selectorConfigModal = null;
+            this.pasteImportState = null;
+        });
+
+        modal.querySelector("#selectorConfirm").addEventListener("click", () => {
+            const inputs = Array.from(modal.querySelectorAll(".selector-valor-input"));
+            if (!inputs.length) {
+                alert("❌ Debes cargar referencias antes de continuar.");
+                return;
+            }
+
+            const opciones = [];
+            let missing = false;
+
+            inputs.forEach(input => {
+                const ref = input.dataset.ref;
+                const valor = (input.value || "").trim();
+                if (!valor) missing = true;
+                opciones.push({ id: this.generateId(), ref, valor });
+            });
+
+            if (missing) {
+                alert("❌ Completa el valor literal de todas las referencias.");
+                return;
+            }
+
+            this.pasteImportState.opcionesPorRef[selector.ref] = opciones;
+
+            modal.remove();
+            this.selectorConfigModal = null;
+            this.openSelectorConfigModal();
+        });
+    },
+
+    parseSelectorRefs(rawText) {
+        const lines = (rawText || "")
+            .split(/\r?\n/)
+            .map(l => l.trim())
+            .filter(l => l.length > 0);
+
+        const tokens = [];
+        lines.forEach(line => {
+            if (this.isPasteNoiseLine(line)) return;
+            line
+                .split(/\t+/)
+                .map(c => c.trim())
+                .filter(Boolean)
+                .forEach(token => tokens.push(token));
+        });
+
+        const refs = [];
+        const seen = new Set();
+        const isLanguageLabel = (value) => {
+            const normalized = (value || "")
+                .toString()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toLowerCase()
+                .trim();
+            return [
+                "castellano",
+                "catalan",
+                "valenciano",
+                "gallego",
+                "euskera",
+                "balear",
+                "ingles",
+                "frances",
+                "aleman",
+                "italiano"
+            ].includes(normalized);
+        };
+
+        let i = 0;
+        while (i < tokens.length) {
+            const candidateRef = tokens[i];
+            if (!candidateRef || isLanguageLabel(candidateRef) || candidateRef.toLowerCase() === "referencia") {
+                i += 1;
+                continue;
+            }
+
+            let j = i + 1;
+            while (j < tokens.length && isLanguageLabel(tokens[j])) {
+                j += 1;
+            }
+            const valor = j < tokens.length ? tokens[j] : "";
+
+            if (!seen.has(candidateRef)) {
+                seen.add(candidateRef);
+                refs.push({ ref: candidateRef, valor });
+            }
+
+            i = j + 1;
+        }
+
+        return refs;
+    },
+
+    applyPasteImport() {
+        const state = this.pasteImportState;
+        if (!state) return;
+
+        const existingByRef = new Map((DataTesauro.campos || []).map(c => [c.ref, c]));
+        let created = 0;
+        let updated = 0;
+
+        state.campos.forEach(item => {
+            const existing = existingByRef.get(item.ref);
+            const opciones = state.opcionesPorRef[item.ref];
+            const momento = item.momento || "Solicitud";
+            const agrupacion = item.agrupacion || "Agrupación";
+
+            if (existing) {
+                existing.nombre = item.nombre;
+                existing.tipo = item.tipo;
+                existing.momento = momento;
+                existing.agrupacion = agrupacion;
+
+                if (item.tipo === "selector") {
+                    if (Array.isArray(opciones)) {
+                        existing.opciones = opciones;
+                    } else if (!Array.isArray(existing.opciones)) {
+                        existing.opciones = [];
+                    }
+                } else {
+                    existing.opciones = [];
+                }
+
+                updated += 1;
+                return;
+            }
+
+            const nuevo = {
+                id: this.generateId(),
+                ref: item.ref,
+                nombre: item.nombre,
+                tipo: item.tipo,
+                opciones: [],
+                momento,
+                agrupacion
+            };
+
+            if (item.tipo === "selector") {
+                if (Array.isArray(opciones)) {
+                    nuevo.opciones = opciones;
+                }
+            }
+
+            DataTesauro.campos.push(nuevo);
+            created += 1;
+        });
+
+        this.render();
+        this.recordHistory();
+        if (typeof DataTesauro.renderList === "function") {
+            DataTesauro.renderList();
+        } else if (typeof DataTesauro.render === "function") {
+            DataTesauro.render();
+        }
+
+        alert(`✅ Importación completada: ${created} creados, ${updated} actualizados.`);
+
+        this.pasteImportState = null;
     },
 
     /* ============================================================
@@ -2472,6 +2887,12 @@ row.appendChild(tdDel);
             return DataTesauro.limitReferenceLength(ref);
         }
         return (ref || "").toString().trim().slice(0, 40);
+    },
+    escapeAttr(value) {
+        if (window.DataTesauro && typeof DataTesauro.escapeAttr === "function") {
+            return DataTesauro.escapeAttr(value);
+        }
+        return (value || "").toString().replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     },
 
     getSuggestedReferenceFromName(nombre) {

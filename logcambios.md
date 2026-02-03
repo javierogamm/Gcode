@@ -1,5 +1,8 @@
 # Log de cambios
 
+## v1.3.26 - 2026-02-24
+- El gestor de tesauros ahora importa tesauros desde copypaste, incluyendo el flujo de configuración de selectores.
+
 ## v1.3.25 - 2026-02-03
 - Se aceptan espacios opcionales entre `condition`, `:` y `(` en la validación de secciones para evitar falsos positivos.
 
