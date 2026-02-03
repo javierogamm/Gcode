@@ -1,5 +1,8 @@
 # Log de cambios
 
+## v1.3.25 - 2026-02-03
+- Se aceptan espacios opcionales entre `condition`, `:` y `(` en la validación de secciones para evitar falsos positivos.
+
 ## v1.3.24 - 2026-02-22
 - Se aseguró el resaltado de columnas y splits incluso cuando dentro hay secciones, tesauros o LET.
 - Se añadió un nuevo overlay para datos de tipo función con color verde oscuro.
