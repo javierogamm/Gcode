@@ -1442,15 +1442,14 @@ function updateHighlight() {
 
         if (kind === "#") {
             // APERTURA VÁLIDA SOLO SI:  {{#section_NOMBRE | condition:...}}
-            let syntaxOk = /^\{\{#section_[^}\s|]+\s*\|\s*condition:/i.test(full);
+            let syntaxOk = /^\{\{#section_[^}\s|]+\s*\|\s*condition\s*:/i.test(full);
 
             // Validar paréntesis en la expresión de condition:
             if (syntaxOk) {
-                const lower = full.toLowerCase();
-                const condIndex = lower.indexOf("condition:");
-                if (condIndex !== -1) {
+                const condMatch = full.match(/condition\s*:\s*/i);
+                if (condMatch && typeof condMatch.index === "number") {
                     const expr = full.slice(
-                        condIndex + "condition:".length,
+                        condMatch.index + condMatch[0].length,
                         full.length - 2 // quitar "}}"
                     );
                     if (!areParenthesesBalanced(expr)) {
